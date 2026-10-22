@@ -24,8 +24,10 @@ final class Monitor: ObservableObject {
     private var ignoredStatusLineAt: Date?
     private var watcher: DispatchSourceFileSystemObject?
     var isDemo: Bool { demoState != nil }
+    private var timersStarted = false
 
     init() {
+        timersStarted = true
         refresh()
         // Só anima (e redesenha) quando tem algo acontecendo ou o painel está aberto.
         timers.append(Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
@@ -57,8 +59,9 @@ final class Monitor: ObservableObject {
         watcher = src
     }
 
-    // Pra gerar as imagens do README sem ler nada da máquina.
-    init(demo state: ChefState, snapshot: Snapshot, hook: HookSession? = nil) {
+    // Pra gerar as imagens do README e pros testes: sem timers e sem ler nada sozinho.
+    // Com state nil, o estado é calculado de verdade a partir do snapshot e do hook.
+    init(demo state: ChefState?, snapshot: Snapshot, hook: HookSession? = nil) {
         demoState = state
         self.snapshot = snapshot
         self.hook = hook
@@ -91,7 +94,7 @@ final class Monitor: ObservableObject {
     }
 
     func refresh() {
-        guard demoState == nil else { return }
+        guard timersStarted else { return }
         queue.async { [weak self] in
             guard let self else { return }
             let cfg = Config.load()

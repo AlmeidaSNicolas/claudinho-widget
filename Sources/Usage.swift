@@ -43,8 +43,7 @@ struct Config: Codable {
         sessionResetsAt: ISO8601DateFormatter().date(from: "2026-10-22T18:59:00Z")!,
         weekPct: 0.10, source: "/usage")
 
-    static let url = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent(".claudinho/config.json")
+    static let url = HookFiles.dir.appendingPathComponent("config.json")
 
     static func load() -> Config {
         let dec = JSONDecoder()
@@ -91,6 +90,8 @@ final class UsageReader {
     private var lastByFile: [URL: LastEvent] = [:]
 
     private let roots: [URL] = {
+        // CLAUDINHO_PROJECTS: só pros testes apontarem pra históricos de mentira.
+        if let p = ProcessInfo.processInfo.environment["CLAUDINHO_PROJECTS"] { return [URL(fileURLWithPath: p)] }
         let home = FileManager.default.homeDirectoryForCurrentUser
         return [home.appendingPathComponent(".claude/projects"),
                 home.appendingPathComponent(".config/claude/projects")]
