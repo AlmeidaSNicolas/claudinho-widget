@@ -30,6 +30,20 @@ Clicando nele abre um painel no estilo e-ink com:
 
 É uma releitura do [kindle-claude](https://github.com/guithepc/kindle-claude) pra quem não tem um Kindle sobrando: a mesma ideia e o mesmo clima de cozinha, só que num app nativo de ~38 MB que acompanha o uso ao vivo e fica parado quando você também está.
 
+## O widget
+
+Também dá pra deixar o Claudinho na mesa ou na Central de Notificações, junto com o calendário e o tempo, em três tamanhos:
+
+| Pequeno | Médio |
+|---|---|
+| ![Widget pequeno](docs/img/widget/pequeno.png) | ![Widget médio](docs/img/widget/medio.png) |
+
+<p align="center"><img src="docs/img/widget/grande.png" alt="Widget grande" width="380"></p>
+
+Pra adicionar: clique com o botão direito na mesa → **Editar Widgets** → procure **Claudinho**. O widget vem junto com o app, não precisa instalar nada a mais.
+
+O widget mostra o mesmo número do painel, mas não anima: no macOS widget não roda timer, e o sistema limita quantas vezes por dia ele pode se redesenhar. Por isso o app só pede um redesenho quando algo muda de verdade (troca de estado na hora, % no máximo a cada 30 s). A contagem regressiva "renova em…" anda sozinha. Se o app ficar fechado por mais de 15 min, o widget passa pra "Descansando".
+
 ## Os estados
 
 | Trabalhando | Pedindo permissão |
@@ -131,6 +145,7 @@ Os limites se ajustam sozinhos a cada leitura real em que o % andou. Normalmente
 | Atualizar depois de mexer no código | `./install.sh` (e `python3 setup.py` se mexeu nos hooks) |
 | Regenerar as imagens do README | `./build.sh --preview` |
 | Regenerar o ícone do app | `./build.sh --icon` |
+| Rodar os testes | `./tests/run.sh` |
 | Remover hooks e statusLine | `python3 setup.py remover` |
 | Desinstalar o app | `./install.sh --uninstall` |
 | Desinstalar sem o repo | `launchctl bootout gui/$UID/local.claudinho.monitor`, apagar os itens da tabela acima e tirar os hooks do `~/.claude/settings.json` |
@@ -143,6 +158,8 @@ Com a tampa fechada o Mac dorme, e o Claudinho junto. Quando acorda, ele atualiz
 claudinho-widget/
 ├── Sources/
 │   ├── StatusBar.swift    ícone na barra de menu (AppKit) e o popover
+│   ├── Style.swift        paleta, formatos e anéis, usados pelo app e pelo widget
+│   ├── WidgetData.swift   o snapshot que o app grava pro widget
 │   ├── App.swift          Monitor (estado + calibração) e o painel em SwiftUI
 │   ├── Usage.swift        leitura incremental dos .jsonl, janela de 5h e semana, config
 │   ├── Hooks.swift        lê state.json e statusline.json gravados pelos hooks
@@ -151,6 +168,11 @@ claudinho-widget/
 ├── hooks/
 │   ├── hook.py            hook do Claude Code: estado de cada sessão
 │   └── statusline.py      statusLine: guarda o % exato e repassa a sua statusLine antiga
+├── Widget/
+│   ├── ClaudinhoWidget.swift  o widget (pequeno, médio e grande), em WidgetKit
+│   ├── Info.plist             extensão com.apple.widgetkit-extension
+│   └── Widget.entitlements    sandbox, lendo só ~/.claudinho
+├── tests/                 ./tests/run.sh: hooks, setup, /usage, históricos, estados, calibração, widget e build
 ├── tools/
 │   ├── preview/           gera as imagens deste README em modo demo
 │   └── icon/              gera o ícone do app a partir do sprite

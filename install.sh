@@ -12,6 +12,7 @@ launchctl bootout "gui/$UID/$LABEL" 2>/dev/null || true
 pkill -x Claudinho 2>/dev/null || true
 
 if [[ "$1" == "--uninstall" ]]; then
+  pluginkit -r "$DEST/Contents/PlugIns/ClaudinhoWidget.appex" 2>/dev/null || true
   rm -f "$AGENT"; rm -rf "$DEST"
   echo "Claudinho removido (config em ~/.claudinho mantida)."
   exit 0
@@ -21,6 +22,10 @@ fi
 mkdir -p "$HOME/Applications" "$HOME/Library/LaunchAgents" "$HOME/.claudinho"
 rm -rf "$DEST"
 cp -R build/Claudinho.app "$DEST"
+# Registra o app e o widget no macOS (o widget aparece na galeria de widgets).
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+$LSREGISTER -f "$DEST" 2>/dev/null || true
+pluginkit -a "$DEST/Contents/PlugIns/ClaudinhoWidget.appex" 2>/dev/null || true
 
 cat > "$AGENT" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

@@ -189,5 +189,36 @@ MainActor.assumeIsolated {
 check(Fmt.tokens(147_700_000) == "147,7 mi" && Fmt.tokens(2_400_000_000) == "2,4 bi" && Fmt.tokens(850_000) == "850 mil", "formato dos tokens")
 check(Fmt.ago(Date().addingTimeInterval(-12)) == "há 12 s" && Fmt.ago(Date().addingTimeInterval(-300)) == "há 5 min", "formato do 'há X'")
 
+// MARK: widget
+section("widget")
+var ws = WidgetSnapshot.placeholder
+ws.updatedAt = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded())
+ws.save()
+check(WidgetSnapshot.url.path.hasPrefix(dataDir.path), "widget.json fica na pasta do Claudinho")
+check(WidgetSnapshot.load() == ws, "widget.json vai e volta igual")
+var ws2 = ws; ws2.updatedAt = ws.updatedAt.addingTimeInterval(40)
+check(!ws2.looksDifferent(from: ws), "só o horário mudou: não recarrega o widget")
+ws2.sessionPct += 0.011
+check(ws2.looksDifferent(from: ws), "% mudou: recarrega")
+ws2 = ws; ws2.state = .waiting
+check(ws2.looksDifferent(from: ws), "estado mudou: recarrega")
+var stale = ws; stale.updatedAt = Date().addingTimeInterval(-20 * 60)
+check(stale.current().state == .resting && stale.current().toolName == nil, "app parado há 20 min: widget mostra descansando")
+var expired = ws; expired.sessionResetsAt = Date().addingTimeInterval(-60)
+check(expired.current().sessionPct == 0 && expired.current().sessionResetsAt == nil, "janela que já renovou zera a sessão")
+check(ws.current().state == ws.state, "snapshot recente fica como está")
+let fromMonitor = Monitor(demo: .frying, snapshot: { var s = Snapshot(); s.sessionPct = 0.42; s.weekPct = 0.2; return s }()).widgetSnapshot
+check(fromMonitor.state == .frying && near(fromMonitor.sessionPct, 0.42), "Monitor monta o snapshot do widget")
+MainActor.assumeIsolated {
+    let e = Entry(date: Date(), snap: .placeholder, missing: false)
+    @MainActor func size(_ v: some View, _ w: CGFloat, _ h: CGFloat) -> Bool {
+        ImageRenderer(content: v.frame(width: w, height: h)).cgImage.map { $0.width == Int(w) && $0.height == Int(h) } == true
+    }
+    check(size(SmallView(e: e), 170, 170), "widget pequeno renderiza")
+    check(size(MediumView(e: e), 364, 170), "widget médio renderiza")
+    check(size(LargeView(e: e), 364, 382), "widget grande renderiza")
+    check(size(MissingView(), 170, 170), "widget sem app renderiza")
+}
+
 print("\n\(passed) ok, \(failures) falha(s)")
 exit(failures == 0 ? 0 : 1)

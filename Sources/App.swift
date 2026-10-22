@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import WidgetKit
 
 // Separado do Monitor pra que só o desenho do chef redesenhe a cada quadro, não o painel inteiro.
 final class Ticker: ObservableObject {
@@ -23,6 +24,9 @@ final class Monitor: ObservableObject {
     private var demoState: ChefState?
     private var ignoredStatusLineAt: Date?
     private var watcher: DispatchSourceFileSystemObject?
+    private var sentToWidget: WidgetSnapshot?
+    private var widgetReloadedAt = Date.distantPast
+    private var reloadPending = false
     var isDemo: Bool { demoState != nil }
     private var timersStarted = false
 
@@ -103,6 +107,7 @@ final class Monitor: ObservableObject {
             let rl = HookFiles.rateLimits()
             DispatchQueue.main.async {
                 self.snapshot = snap; self.config = cfg; self.hook = hook
+                self.publishToWidget()
                 // statusLine nova: é o % exato, vira a âncora da conta.
                 // (+1 s porque o config.json guarda as datas sem frações de segundo)
                 if let rl, let reset = rl.sessionResetsAt, reset > Date(),
@@ -148,7 +153,34 @@ final class Monitor: ObservableObject {
                                           weekPct: weekPct, source: source)
             cfg.save()
             let snap = self.reader.refresh(config: cfg)
-            DispatchQueue.main.async { self.config = cfg; self.snapshot = snap; self.calibrating = false }
+            DispatchQueue.main.async { self.config = cfg; self.snapshot = snap; self.calibrating = false; self.publishToWidget() }
+        }
+    }
+
+    var widgetSnapshot: WidgetSnapshot {
+        WidgetSnapshot(updatedAt: Date(), state: state, sessionPct: sessionPct, sessionResetsAt: snapshot.sessionResetsAt,
+                       weekPct: weekPct, weekResetsAt: snapshot.weekResetsAt, todayTokens: snapshot.todayTokens,
+                       avg7dTokens: snapshot.avg7dTokens, toolName: toolName, toolDetail: toolDetail, project: project,
+                       liveAt: snapshot.calibrated ? config.calibration?.at : nil)
+    }
+
+    // O macOS limita quantas vezes por dia um widget pode recarregar. Por isso só pede quando o
+    // desenho muda: troca de estado na hora, o resto no máximo a cada 30 s. O arquivo em si é
+    // regravado a cada minuto pro widget saber que o app está vivo.
+    private func publishToWidget() {
+        guard timersStarted else { return }
+        let next = widgetSnapshot
+        let now = Date()
+        let changed = sentToWidget.map { next.looksDifferent(from: $0) } ?? true
+        let stateChanged = sentToWidget?.state != next.state
+        let alive = now.timeIntervalSince(sentToWidget?.updatedAt ?? .distantPast) > 60
+        if changed { reloadPending = true }
+        guard changed || alive || reloadPending else { return }
+        if changed || alive { next.save(); sentToWidget = next }
+        if reloadPending && (stateChanged || now.timeIntervalSince(widgetReloadedAt) > 30) {
+            reloadPending = false
+            widgetReloadedAt = now
+            WidgetCenter.shared.reloadTimelines(ofKind: "claudinho")
         }
     }
 
@@ -198,89 +230,6 @@ final class Monitor: ObservableObject {
 
     var sessionPct: Double { snapshot.sessionPct }
     var weekPct: Double { snapshot.weekPct }
-}
-
-enum Fmt {
-    static func tokens(_ n: Int) -> String {
-        let d = Double(n)
-        let f = NumberFormatter()
-        f.locale = Locale(identifier: "pt_BR")
-        f.maximumFractionDigits = 1
-        f.minimumFractionDigits = 1
-        if d >= 1e9 { return "\(f.string(from: NSNumber(value: d / 1e9))!) bi" }
-        if d >= 1e6 { return "\(f.string(from: NSNumber(value: d / 1e6))!) mi" }
-        if d >= 1e3 { f.maximumFractionDigits = 0; f.minimumFractionDigits = 0; return "\(f.string(from: NSNumber(value: d / 1e3))!) mil" }
-        return "\(n)"
-    }
-
-    static func time(_ d: Date) -> String {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return f.string(from: d)
-    }
-
-    static func ago(_ d: Date, now: Date = Date()) -> String {
-        let s = Int(max(0, now.timeIntervalSince(d)))
-        if s < 60 { return "há \(s) s" }
-        if s < 3600 { return "há \(s / 60) min" }
-        return "às \(time(d))"
-    }
-
-    static func weekdayTime(_ d: Date) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "pt_BR")
-        f.dateFormat = "EEE HH:mm"
-        return f.string(from: d).replacingOccurrences(of: ".", with: "")
-    }
-
-    // "20:59" -> próxima vez que o relógio marcar 20:59.
-    static func nextTime(_ hhmm: String, after now: Date = Date()) -> Date? {
-        let parts = hhmm.split(separator: ":").compactMap { Int($0) }
-        guard parts.count == 2 else { return nil }
-        return Calendar.current.nextDate(after: now, matching: DateComponents(hour: parts[0], minute: parts[1]),
-                                         matchingPolicy: .nextTime)
-    }
-}
-
-// Paleta "e-ink", fixa pra parecer o Kindle independente do tema do Mac.
-private let ink = Color(red: 0.16, green: 0.16, blue: 0.16)
-private let paper = Color(red: 0.91, green: 0.90, blue: 0.87)
-private let faded = Color(red: 0.55, green: 0.55, blue: 0.53)
-
-struct Caption: View {
-    let text: String
-    var color: Color = faded
-    var body: some View {
-        Text(text.uppercased()).font(.system(size: 9, weight: .semibold, design: .monospaced)).tracking(1.5).foregroundStyle(color)
-    }
-}
-
-struct Dial: View {
-    let pct: Double
-    let label: String
-    let footnote: String
-    private let segments = 24
-
-    var body: some View {
-        VStack(spacing: 6) {
-            ZStack {
-                ForEach(0..<segments, id: \.self) { i in
-                    let on = Double(i) < pct * Double(segments)
-                    Capsule()
-                        .fill(on ? ink : ink.opacity(0.15))
-                        .frame(width: 4, height: 9)
-                        .offset(y: -34)
-                        .rotationEffect(.degrees(Double(i) / Double(segments) * 360))
-                }
-                VStack(spacing: 0) {
-                    Text("\(Int((pct * 100).rounded()))%").font(.system(size: 20, weight: .bold, design: .rounded)).foregroundStyle(ink)
-                    Caption(text: label)
-                }
-            }
-            .frame(width: 82, height: 82)
-            Text(footnote).font(.system(size: 9, design: .monospaced)).foregroundStyle(faded)
-        }
-    }
 }
 
 struct Panel: View {

@@ -83,4 +83,21 @@ for (state, name) in [(ChefState.thinking, "sopa"), (.chopping, "cebola"), (.fry
     gif(state, name, delay: state == .resting ? 1.6 : 0.8)
 }
 menuBar()
+
+// Os três tamanhos do widget, com os cantos arredondados do macOS.
+@MainActor func widget(_ v: some View, _ w: CGFloat, _ h: CGFloat, _ name: String) {
+    let r = ImageRenderer(content: v.frame(width: w, height: h).clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .padding(10).background(Color(white: 0.12)))
+    r.scale = 2
+    writePNG(r.cgImage!, out.appendingPathComponent("widget/\(name).png"))
+}
+try? FileManager.default.createDirectory(at: out.appendingPathComponent("widget"), withIntermediateDirectories: true)
+MainActor.assumeIsolated {
+    let e = Entry(date: Date(), snap: .placeholder, missing: false)
+    var resting = WidgetSnapshot.placeholder; resting.state = .resting; resting.toolName = nil; resting.toolDetail = nil
+    widget(SmallView(e: e), 170, 170, "pequeno")
+    widget(MediumView(e: e), 364, 170, "medio")
+    widget(LargeView(e: e), 364, 382, "grande")
+    widget(SmallView(e: Entry(date: Date(), snap: resting, missing: false)), 170, 170, "pequeno-descansando")
+}
 print("imagens em \(out.path)")

@@ -90,6 +90,17 @@ Na primeira vez o Claude Code pergunta se você confia na pasta `~/.claudinho`. 
 | `/usage` | ~1 s por leitura, no máximo 1 por minuto, e só com atividade nova |
 | Instância | se já tem um Claudinho rodando, o segundo fecha sozinho |
 
+## O widget
+
+O widget é uma extensão WidgetKit embutida no app (`Contents/PlugIns/ClaudinhoWidget.appex`). Ele roda em sandbox, então não lê os históricos nem roda o `/usage`:
+
+1. A cada atualização, o app monta um `WidgetSnapshot` (estado, %, renovações, tokens, ferramenta) e grava em `~/.claudinho/widget.json`.
+2. Se o desenho mudou, o app chama `WidgetCenter.reloadTimelines(ofKind: "claudinho")`. Troca de estado recarrega na hora; mudança de % ou ferramenta, no máximo a cada 30 s, pra não estourar o limite diário de recargas do macOS.
+3. O widget lê o arquivo pelo `temporary-exception.files.home-relative-path.read-only` (`/.claudinho/`) e se redesenha. Sozinho, ele só se atualiza a cada 15 min.
+4. Se o arquivo tem mais de 15 min, o app está fechado ou o Mac dormiu: o widget mostra "Descansando" e zera a sessão se a janela já renovou.
+
+Tudo é assinado ad hoc (`codesign --sign -`), sem conta de desenvolvedor.
+
 ## Rodando sozinho
 
 `install.sh` copia o app pra `~/Applications` e registra `~/Library/LaunchAgents/local.claudinho.monitor.plist`:
