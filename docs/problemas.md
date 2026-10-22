@@ -12,6 +12,8 @@
 | `@State` não compila só com as Command Line Tools | No SDK novo `@State` virou macro, e o plugin só vem com o Xcode. O formulário usa um `ObservableObject` com `@StateObject`. |
 | ~5% de CPU com o painel fechado | O `MenuBarExtra` redesenhava o ícone a cada meio segundo, e o macOS copia o ícone pra cada tela. Ícone em AppKit, 1 quadro por segundo, cache de sprites e animação só quando trabalhando. |
 | ~6% de CPU com o painel aberto | O painel inteiro redesenhava a cada quadro. O quadro foi pra um `ObservableObject` separado que só o desenho do chef observa. |
+| No app do Claude, a statusLine dizia 1% enquanto o `/usage` dizia 9% | Ela pode repetir um `rate_limits` antigo com horário novo. Leitura menor que a anterior na mesma janela é ignorada, o `/usage` continua rodando a cada 30 min e o limite só é remedido entre leituras do `/usage`. |
+| A statusLine "renovava" a âncora a cada 5 s e o `/usage` nunca rodava | O `config.json` guarda datas sem frações de segundo, então a statusLine parecia sempre 0,4 s mais nova. Tolerância de 1 s na comparação. |
 | Sessões abertas antes do `setup.py` não mudam de estado pelos hooks | É esperado: só sessões novas carregam os hooks. Reinicie. Enquanto isso o app usa os históricos. |
 
 ## Diagnóstico

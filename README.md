@@ -144,7 +144,7 @@ claudinho-widget/
 
 - Só enxerga o Claude Code rodando neste Mac. O uso no claude.ai (navegador ou celular) entra no seu limite, mas não nos históricos. A calibração pelo `/usage` ou pela statusLine é que corrige isso.
 - Entre duas leituras reais o % é uma projeção. Ele usa pesos de custo por tipo de token e um limite medido, então pode errar uns pontos até a próxima leitura.
-- O app do Claude pode não rodar a statusLine. Nesse caso vale o `/usage` automático.
+- No app do Claude a statusLine roda, mas pode repetir um % antigo. Por isso o `/usage` automático continua valendo, e leituras que andam pra trás são ignoradas.
 - O estado "pedindo permissão" só aparece com os hooks ligados.
 - O `/usage` automático depende do texto da tela do Claude Code. Se ele mudar de formato, a leitura falha em silêncio e o app segue só com a estimativa.
 - Compilado e testado só em Apple Silicon, no macOS 27.

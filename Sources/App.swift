@@ -21,6 +21,7 @@ final class Monitor: ObservableObject {
     private var timers: [Timer] = []
     private var lastProbe = Date.distantPast
     private var demoState: ChefState?
+    private var ignoredStatusLineAt: Date?
     private static let probeEvery: TimeInterval = 30 * 60
     var isDemo: Bool { demoState != nil }
 
@@ -45,9 +46,9 @@ final class Monitor: ObservableObject {
         self.hook = hook
     }
 
-    // Sem statusLine recente, lê o /usage real a cada 30 min, se o Claude Code foi usado nesse tempo.
+    // Lê o /usage real a cada 30 min, se o Claude Code foi usado nesse tempo. Roda mesmo com
+    // statusLine, porque no app do Claude ela pode repetir um % antigo.
     private func probeIfDue() {
-        if let rl = HookFiles.rateLimits(), Date().timeIntervalSince(rl.savedAt) < Self.probeEvery { return }
         guard !probing, Date().timeIntervalSince(lastProbe) > Self.probeEvery,
               let last = lastActivity, Date().timeIntervalSince(last) < Self.probeEvery else { return }
         probeNow()
@@ -79,7 +80,10 @@ final class Monitor: ObservableObject {
             DispatchQueue.main.async {
                 self.snapshot = snap; self.config = cfg; self.hook = hook
                 // statusLine nova: é o % exato, vira a âncora da conta.
-                if let rl, let reset = rl.sessionResetsAt, reset > Date(), rl.savedAt > (cfg.calibration?.at ?? .distantPast) {
+                // (+1 s porque o config.json guarda as datas sem frações de segundo)
+                if let rl, let reset = rl.sessionResetsAt, reset > Date(),
+                   rl.savedAt > (cfg.calibration?.at ?? .distantPast).addingTimeInterval(1),
+                   rl.savedAt != self.ignoredStatusLineAt {
                     self.calibrate(sessionPct: rl.sessionPct, weekPct: rl.weekPct, sessionResetsAt: reset,
                                    weekResetsAt: rl.weekResetsAt, at: rl.savedAt, source: "statusLine")
                 } else {
@@ -96,7 +100,15 @@ final class Monitor: ObservableObject {
         queue.async { [weak self] in
             guard let self else { return }
             var cfg = Config.load()
-            if let old = cfg.calibration, at > old.at {
+            // Dentro da mesma janela o uso só sobe: leitura menor que a anterior é velha.
+            if source != "manual", let old = cfg.calibration,
+               abs(old.sessionResetsAt.timeIntervalSince(sessionResetsAt)) < 120,
+               sessionPct < old.sessionPct - 0.005 || weekPct < old.weekPct - 0.005 {
+                DispatchQueue.main.async { self.ignoredStatusLineAt = at }
+                return
+            }
+            // Limite só é remedido entre leituras do /usage ou manuais: a statusLine pode estar velha.
+            if let old = cfg.calibration, at > old.at, old.source != "statusLine", source != "statusLine" {
                 let used = self.reader.units(from: old.at, to: at)
                 let ds = sessionPct - old.sessionPct
                 if abs(old.sessionResetsAt.timeIntervalSince(sessionResetsAt)) < 120, ds >= 0.03, used > 0 {
