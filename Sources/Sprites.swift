@@ -3,7 +3,7 @@ import AppKit
 // Claudinho chef em pixel art. '#' = pixel aceso. Canvas 27x16:
 // personagem em x=0 (12 colunas), utensílio em x=13 (14 colunas).
 
-enum ChefState {
+enum ChefState: String, Codable {
     case thinking, chopping, frying, seasoning, plating, waiting, asking, resting
 
     var title: String {

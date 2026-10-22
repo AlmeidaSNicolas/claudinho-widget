@@ -20,6 +20,12 @@ O ícone é uma imagem *template*: o macOS pinta de preto ou branco conforme o t
 
 O ícone só redesenha quando algo muda (estado, quadro ou %). Parado, não gasta nada. A primeira versão era em SwiftUI (`MenuBarExtra`) e redesenhava a cada meio segundo, com uns 5% de CPU. Em AppKit, com 1 quadro por segundo e cache dos sprites, caiu pra uns 2,5% trabalhando e ~0% parado.
 
+## Os cartões
+
+Os três tamanhos seguem os widgets do macOS (158×158, 345×158 e 345×345 nesta tela) e a mesma divisão do painel: tinta à esquerda ou em cima com o Claudinho, papel com os anéis. Médio e grande medem o espaço que recebem e distribuem a partir dele, porque o macOS muda o tamanho dos widgets por tela e por versão.
+
+O mesmo `Card` desenha o widget nativo (parado, quadro 0) e o Claudinho de mesa (animado). O sprite é um `Shape` do SwiftUI, um retângulo por pixel, porque imagem gerada por código não chega até o widget nativo.
+
 ## O ícone
 
 Gerado pelo mesmo sprite, com `./build.sh --icon`: o Claudinho mexendo a sopa no fundo de tinta, com uma faixa de papel embaixo de bancada. O corpo ganha a cor de argila do mascote do Claude Code (`#D97857`), a única cor fora da paleta. Em 16 e 32 px a cena não cabe, então só o Claudinho aparece, maior.

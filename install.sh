@@ -3,6 +3,7 @@
 # (e voltar se fechar com erro). "Sair" no menu fecha de verdade até o próximo login.
 # Desinstalar: ./install.sh --uninstall
 set -e
+: "${HOME:?HOME vazio, abortando pra não apagar nada fora da pasta do usuário}"
 cd "$(dirname "$0")"
 LABEL=local.claudinho.monitor
 DEST="$HOME/Applications/Claudinho.app"
@@ -12,6 +13,7 @@ launchctl bootout "gui/$UID/$LABEL" 2>/dev/null || true
 pkill -x Claudinho 2>/dev/null || true
 
 if [[ "$1" == "--uninstall" ]]; then
+  pluginkit -r "$DEST/Contents/PlugIns/ClaudinhoWidget.appex" 2>/dev/null || true
   rm -f "$AGENT"; rm -rf "$DEST"
   echo "Claudinho removido (config em ~/.claudinho mantida)."
   exit 0
@@ -19,8 +21,13 @@ fi
 
 ./build.sh
 mkdir -p "$HOME/Applications" "$HOME/Library/LaunchAgents" "$HOME/.claudinho"
+[[ -d "$DEST/Contents/PlugIns/ClaudinhoWidget.appex" ]] && pluginkit -r "$DEST/Contents/PlugIns/ClaudinhoWidget.appex" 2>/dev/null || true
 rm -rf "$DEST"
 cp -R build/Claudinho.app "$DEST"
+# Registra o app e o widget no macOS (o widget aparece na galeria de widgets).
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+$LSREGISTER -f "$DEST" 2>/dev/null || true
+[[ -d "$DEST/Contents/PlugIns/ClaudinhoWidget.appex" ]] && pluginkit -a "$DEST/Contents/PlugIns/ClaudinhoWidget.appex" 2>/dev/null || true
 
 cat > "$AGENT" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

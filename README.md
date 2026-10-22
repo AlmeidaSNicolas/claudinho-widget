@@ -30,6 +30,27 @@ Clicando nele abre um painel no estilo e-ink com:
 
 É uma releitura do [kindle-claude](https://github.com/guithepc/kindle-claude) pra quem não tem um Kindle sobrando: a mesma ideia e o mesmo clima de cozinha, só que num app nativo de ~38 MB que acompanha o uso ao vivo e fica parado quando você também está.
 
+## Na mesa
+
+O Claudinho também fica na mesa, ao lado do calendário e do tempo, em dois jeitos com o mesmo visual e os mesmos três tamanhos:
+
+<p align="center"><img src="docs/img/mesa.gif" alt="Claudinho de mesa animado: mexendo a sopa, cortando cebola, frigideira e prato pronto" width="380"></p>
+
+| | Claudinho de mesa | Widget nativo |
+|---|---|---|
+| Atualiza | na hora, junto com a barra de menu | quando o macOS deixa (o app pede a cada mudança, no máximo a cada 30 s) |
+| Anima | sim | não (widget no macOS não roda timer) |
+| Onde | preso no fundo da mesa, em todas as mesas (Spaces) | mesa e Central de Notificações |
+| Como ligar | ⋯ no painel → **Claudinho de mesa** → tamanho | botão direito na mesa → **Editar Widgets** → **Claudinho** |
+
+O **Claudinho de mesa** é uma janela do próprio app, sem borda, logo acima dos ícones da mesa e abaixo de qualquer janela, como os widgets da Apple. Dá pra arrastar pra onde quiser, e ele lembra a posição. Botão direito nele troca o tamanho ou esconde.
+
+O **widget nativo** vem junto com o app, sem precisar de Xcode nem de conta de desenvolvedor. Ele lê o que o app grava, então mostra os mesmos números, só que sem animação e com um pouco de atraso. Se o app ficar fechado por mais de 15 min, ele passa pra "Descansando".
+
+| Pequeno | Médio | Grande |
+|---|---|---|
+| ![Pequeno](docs/img/widget/pequeno.png) | ![Médio](docs/img/widget/medio.png) | ![Grande](docs/img/widget/grande.png) |
+
 ## Os estados
 
 | Trabalhando | Pedindo permissão |
@@ -114,6 +135,7 @@ Fica em `~/.claudinho/config.json`, que o app cria e mantém sozinho:
 |---|---|---|
 | `sessionLimitUnits` | quantas unidades ponderadas valem 100% da sessão | `18000000` |
 | `weeklyLimitUnits` | idem pra semana | `67000000` |
+| `~/.claudinho/mesa.json` | tamanho e posição do Claudinho de mesa (o app grava sozinho) | desligado |
 | `liveProbeSeconds` | com o Claude trabalhando, de quantos em quantos segundos ler o `/usage` | `60` |
 | `weekResetsAt` | um instante em que a semana renova (o ciclo se repete a cada 7 dias) | da primeira leitura |
 | `calibration` | a última leitura real (`at`, `sessionPct`, `sessionResetsAt`, `weekPct`, `source`) | — |
@@ -125,12 +147,14 @@ Os limites se ajustam sozinhos a cada leitura real em que o % andou. Normalmente
 | Ação | Como |
 |---|---|
 | Ver o painel | clicar no Claudinho na barra de menu |
+| Claudinho de mesa | ⋯ no painel → **Claudinho de mesa** → Pequeno, Médio ou Grande (botão direito nele pra trocar ou esconder) |
 | Ler o uso real agora | ⋯ → **Recalibrar agora** (lê o `/usage`) |
 | Calibrar à mão | ⋯ → **Calibrar à mão…** e copiar os números do `/usage` |
 | Sair | ⋯ → **Sair do Claudinho** (volta no próximo login) |
 | Atualizar depois de mexer no código | `./install.sh` (e `python3 setup.py` se mexeu nos hooks) |
 | Regenerar as imagens do README | `./build.sh --preview` |
 | Regenerar o ícone do app | `./build.sh --icon` |
+| Rodar os testes | `./tests/run.sh` |
 | Remover hooks e statusLine | `python3 setup.py remover` |
 | Desinstalar o app | `./install.sh --uninstall` |
 | Desinstalar sem o repo | `launchctl bootout gui/$UID/local.claudinho.monitor`, apagar os itens da tabela acima e tirar os hooks do `~/.claude/settings.json` |
@@ -143,6 +167,10 @@ Com a tampa fechada o Mac dorme, e o Claudinho junto. Quando acorda, ele atualiz
 claudinho-widget/
 ├── Sources/
 │   ├── StatusBar.swift    ícone na barra de menu (AppKit) e o popover
+│   ├── DeskWindow.swift   o Claudinho de mesa: janela no fundo da mesa, tamanho e posição
+│   ├── CardViews.swift    os cartões pequeno, médio e grande (mesa e widget nativo)
+│   ├── Style.swift        paleta, formatos e anéis, usados pelo app e pelo widget
+│   ├── WidgetData.swift   o snapshot que o app grava pro widget nativo
 │   ├── App.swift          Monitor (estado + calibração) e o painel em SwiftUI
 │   ├── Usage.swift        leitura incremental dos .jsonl, janela de 5h e semana, config
 │   ├── Hooks.swift        lê state.json e statusline.json gravados pelos hooks
@@ -151,6 +179,11 @@ claudinho-widget/
 ├── hooks/
 │   ├── hook.py            hook do Claude Code: estado de cada sessão
 │   └── statusline.py      statusLine: guarda o % exato e repassa a sua statusLine antiga
+├── Widget/
+│   ├── ClaudinhoWidget.swift  o widget nativo em WidgetKit (desenha os cartões de CardViews.swift)
+│   ├── Info.plist             extensão com.apple.widgetkit-extension
+│   └── Widget.entitlements    sandbox, lendo só ~/.claudinho
+├── tests/                 ./tests/run.sh: hooks, setup, /usage, históricos, estados, calibração, mesa, widget e build
 ├── tools/
 │   ├── preview/           gera as imagens deste README em modo demo
 │   └── icon/              gera o ícone do app a partir do sprite
@@ -168,6 +201,7 @@ claudinho-widget/
 - Cada leitura abre o Claude Code por ~1 s, com um pico de 200–400 MB que some logo depois. Dá pra espaçar com `liveProbeSeconds`.
 - No app do Claude a statusLine roda, mas pode repetir um % antigo. Por isso o `/usage` automático continua valendo, e leituras que andam pra trás são ignoradas.
 - O estado "pedindo permissão" só aparece com os hooks ligados.
+- O Claudinho de mesa é uma janela do app: se o app fechar, ele some junto (o widget nativo continua lá, parado). Ele não aparece na Central de Notificações.
 - O `/usage` automático depende do texto da tela do Claude Code. Se ele mudar de formato, a leitura falha em silêncio e o app segue só com a estimativa.
 - Compilado e testado só em Apple Silicon, no macOS 27.
 
