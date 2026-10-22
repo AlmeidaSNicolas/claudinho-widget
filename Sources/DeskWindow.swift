@@ -13,6 +13,13 @@ struct DeskPrefs: Codable, Equatable {
 
     static var url: URL { HookFiles.dir.appendingPathComponent("mesa.json") }
 
+    // A janela é o cartão mais uma margem transparente, onde cabe a sombra leve dos widgets.
+    // (A sombra de janela do macOS é pesada e deixava o cartão com cara de janela.)
+    static let shadowPad: CGFloat = 16
+    static func windowSize(_ card: CardSize) -> CGSize {
+        CGSize(width: card.size.width + 2 * shadowPad, height: card.size.height + 2 * shadowPad)
+    }
+
     static func load() -> DeskPrefs {
         guard let data = try? Data(contentsOf: url) else { return DeskPrefs() }
         return (try? JSONDecoder().decode(DeskPrefs.self, from: data)) ?? DeskPrefs()
@@ -26,7 +33,7 @@ struct DeskPrefs: Codable, Equatable {
     // A posição salva, se o cartão ainda cabe numa das telas; senão o canto de cima à direita
     // da primeira, longe dos ícones da mesa. (Monitor desligado, resolução trocada…)
     func origin(for card: CardSize, screens: [CGRect]) -> CGPoint {
-        let size = card.size
+        let size = Self.windowSize(card)
         if let x, let y {
             let rect = CGRect(origin: CGPoint(x: x, y: y), size: size)
             if screens.contains(where: { $0.contains(rect) }) { return rect.origin }
@@ -47,6 +54,8 @@ struct DeskView: View {
             .frame(width: size.size.width, height: size.size.height)
             .clipShape(shape)
             .overlay(shape.strokeBorder(Color.white.opacity(0.08)))
+            .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
+            .padding(DeskPrefs.shadowPad)
             .environment(\.colorScheme, .light)
             .contextMenu { DeskMenu(monitor: monitor) }
     }
@@ -76,6 +85,10 @@ final class DraggableHostingView<Content: View>: NSHostingView<Content> {
 }
 
 final class DeskController: NSObject, NSWindowDelegate {
+    // A camada dos widgets da Apple na mesa (medida nas janelas da Central de Notificações):
+    // dois acima dos ícones e abaixo de qualquer janela. Um a menos e o cartão passava por baixo deles.
+    static let level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 2)
+
     private let monitor: Monitor
     private var panel: NSPanel?
     private var prefs = DeskPrefs.load()
@@ -97,21 +110,19 @@ final class DeskController: NSObject, NSWindowDelegate {
         let p = panel ?? makePanel()
         p.contentView = DraggableHostingView(rootView: DeskView(monitor: monitor, ticker: monitor.ticker, size: size))
         let origin = prefs.origin(for: size, screens: NSScreen.screens.map(\.visibleFrame))
-        p.setFrame(CGRect(origin: origin, size: size.size), display: true)
+        p.setFrame(CGRect(origin: origin, size: DeskPrefs.windowSize(size)), display: true)
         p.orderFront(nil)
-        p.invalidateShadow()
         panel = p
     }
 
     private func makePanel() -> NSPanel {
         let p = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        // Logo acima dos ícones da mesa e abaixo de qualquer janela, como os widgets da Apple.
-        p.level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) + 1)
+        p.level = Self.level
         p.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenNone]
         p.isMovableByWindowBackground = true
         p.backgroundColor = .clear
         p.isOpaque = false
-        p.hasShadow = true
+        p.hasShadow = false
         p.hidesOnDeactivate = false
         p.isReleasedWhenClosed = false
         p.delegate = self
