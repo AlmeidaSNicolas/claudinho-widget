@@ -2,9 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <!-- todo widget roda em sandbox; a única pasta que ele lê é ~/.claudinho -->
+  <!-- todo widget roda em sandbox; a única pasta que ele acessa é ~/.claudinho
+       (lê widget.json, escreve widget.log) -->
   <key>com.apple.security.app-sandbox</key><true/>
-  <key>com.apple.security.temporary-exception.files.home-relative-path.read-only</key>
+  <key>com.apple.security.temporary-exception.files.home-relative-path.read-write</key>
   <array><string>/.claudinho/</string></array>
 </dict>
 </plist>

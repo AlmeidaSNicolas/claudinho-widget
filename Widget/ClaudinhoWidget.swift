@@ -22,19 +22,44 @@ struct Provider: TimelineProvider {
     }
 
     private func entry() -> Entry {
-        if let s = WidgetSnapshot.load() { return Entry(date: Date(), snap: s.current(), missing: false) }
+        let s = WidgetSnapshot.load()
+        Self.log(s == nil ? "não li \(WidgetSnapshot.url.path)" : "li o snapshot: \(s!.state) \(Int(s!.sessionPct * 100))%")
+        if let s { return Entry(date: Date(), snap: s.current(), missing: false) }
         return Entry(date: Date(), snap: .placeholder, missing: true)
+    }
+
+    // Diagnóstico: a última leitura do widget fica em ~/.claudinho/widget.log.
+    static func log(_ msg: String) {
+        let url = WidgetSnapshot.url.deletingLastPathComponent().appendingPathComponent("widget.log")
+        try? "\(Date()) \(msg)\n".write(to: url, atomically: true, encoding: .utf8)
     }
 }
 
 // MARK: peças
 
+// O sprite como forma do SwiftUI. NSImage desenhado por código não chega no widget: o macOS
+// serializa a view pra desenhar em outro processo, e a imagem some (o widget aparecia vazio).
+struct SpriteShape: Shape {
+    let grid: Grid
+    func path(in rect: CGRect) -> Path {
+        let px = min(rect.width / CGFloat(Sprites.width), rect.height / CGFloat(Sprites.height))
+        var p = Path()
+        for (y, row) in grid.enumerated() {
+            for (x, on) in row.enumerated() where on {
+                p.addRect(CGRect(x: rect.minX + CGFloat(x) * px, y: rect.minY + CGFloat(y) * px, width: px, height: px))
+            }
+        }
+        return p
+    }
+}
+
 struct Chef: View {
     let state: ChefState
     let pixel: CGFloat
     var body: some View {
-        Image(nsImage: Sprites.image(state, frame: 0, pixel: pixel, color: NSColor(paper), template: false))
-            .interpolation(.none)
+        SpriteShape(grid: Sprites.grid(state, frame: 0))
+            .fill(paper)
+            .frame(width: CGFloat(Sprites.width) * pixel, height: CGFloat(Sprites.height) * pixel)
     }
 }
 
