@@ -219,9 +219,10 @@ MainActor.assumeIsolated {
     @MainActor func size(_ v: some View, _ w: CGFloat, _ h: CGFloat) -> Bool {
         ImageRenderer(content: v.frame(width: w, height: h)).cgImage.map { $0.width == Int(w) && $0.height == Int(h) } == true
     }
-    check(size(SmallView(e: e), 170, 170), "widget pequeno renderiza")
-    check(size(MediumView(e: e), 364, 170), "widget médio renderiza")
-    check(size(LargeView(e: e), 364, 382), "widget grande renderiza")
+    // tamanho real deste macOS e o tamanho maior de outras telas: os dois têm que caber
+    for (w, h) in [(158, 158), (170, 170)] { check(size(SmallView(e: e), CGFloat(w), CGFloat(h)), "widget pequeno renderiza em \(w)x\(h)") }
+    for (w, h) in [(345, 158), (364, 170)] { check(size(MediumView(e: e), CGFloat(w), CGFloat(h)), "widget médio renderiza em \(w)x\(h)") }
+    for (w, h) in [(345, 345), (364, 382)] { check(size(LargeView(e: e), CGFloat(w), CGFloat(h)), "widget grande renderiza em \(w)x\(h)") }
     check(size(MissingView(), 170, 170), "widget sem app renderiza")
 }
 

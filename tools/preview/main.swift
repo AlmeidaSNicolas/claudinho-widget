@@ -95,9 +95,9 @@ try? FileManager.default.createDirectory(at: out.appendingPathComponent("widget"
 MainActor.assumeIsolated {
     let e = Entry(date: Date(), snap: .placeholder, missing: false)
     var resting = WidgetSnapshot.placeholder; resting.state = .resting; resting.toolName = nil; resting.toolDetail = nil
-    widget(SmallView(e: e), 170, 170, "pequeno")
-    widget(MediumView(e: e), 364, 170, "medio")
-    widget(LargeView(e: e), 364, 382, "grande")
+    widget(SmallView(e: e), 158, 158, "pequeno")
+    widget(MediumView(e: e), 345, 158, "medio")
+    widget(LargeView(e: e), 345, 345, "grande")
     widget(SmallView(e: Entry(date: Date(), snap: resting, missing: false)), 170, 170, "pequeno-descansando")
 }
 print("imagens em \(out.path)")

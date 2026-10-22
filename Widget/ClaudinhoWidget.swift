@@ -131,7 +131,10 @@ struct SmallView: View {
                 Chef(state: s.state, pixel: 1.5)
             }
             Pct(value: s.sessionPct, size: 40, color: paper)
-            Resets(date: s.sessionResetsAt).font(.system(size: 10, design: .monospaced)).foregroundStyle(paper.opacity(0.55)).lineLimit(1)
+            Group {
+                if let r = s.sessionResetsAt { Text("↻ ") + Text(r, style: .relative) } else { Text("sem sessão ativa") }
+            }
+            .font(.system(size: 10, design: .monospaced)).foregroundStyle(paper.opacity(0.55)).lineLimit(1)
             Spacer(minLength: 4)
             Text("✱ \(s.state.title)").font(.system(size: 13, weight: .semibold)).foregroundStyle(paper).lineLimit(1)
             Text("semana \(Int((s.weekPct * 100).rounded()))%")
@@ -145,35 +148,44 @@ struct SmallView: View {
     }
 }
 
+// O tamanho de cada família muda com a tela e a versão do macOS (o grande chegou a 345x345
+// em vez de 364x382), então médio e grande medem o espaço e distribuem a partir dele.
+
 struct MediumView: View {
     let e: Entry
     var body: some View {
         let s = e.snap
-        HStack(spacing: 0) {
-            ChefSide(s: s, pixel: 3)
-                .padding(14)
-                .frame(width: 128, alignment: .leading)
-                .frame(maxHeight: .infinity)
-                .background(ink)
-            VStack(alignment: .leading, spacing: 6) {
-                ToolBar(s: s)
-                HStack(spacing: 10) {
-                    Dial(pct: s.sessionPct, label: "sessão", footnote: "", size: 62)
-                    Dial(pct: s.weekPct, label: "semana", footnote: "", size: 62)
-                }
-                .frame(maxWidth: .infinity)
-                HStack(alignment: .firstTextBaseline) {
-                    Text(Fmt.tokens(s.todayTokens)).font(.system(size: 13, weight: .bold, design: .rounded)).foregroundStyle(ink)
-                    Text("hoje").font(.system(size: 9, design: .monospaced)).foregroundStyle(faded)
-                    Spacer()
-                    if let r = s.sessionResetsAt {
-                        (Text("↻ ") + Text(r, style: .relative)).font(.system(size: 9, design: .monospaced)).foregroundStyle(faded).lineLimit(1)
+        GeometryReader { geo in
+            let h = geo.size.height
+            let dial = min(62, h * 0.38)
+            HStack(spacing: 0) {
+                ChefSide(s: s, pixel: min(3, (geo.size.width * 0.35 - 28) / CGFloat(Sprites.width)))
+                    .padding(14)
+                    .frame(width: geo.size.width * 0.35, alignment: .leading)
+                    .frame(maxHeight: .infinity)
+                    .background(ink)
+                VStack(alignment: .leading, spacing: 0) {
+                    ToolBar(s: s)
+                    Spacer(minLength: 4)
+                    HStack(spacing: 10) {
+                        Dial(pct: s.sessionPct, label: "sessão", footnote: "", size: dial)
+                        Dial(pct: s.weekPct, label: "semana", footnote: "", size: dial)
+                    }
+                    .frame(maxWidth: .infinity)
+                    Spacer(minLength: 4)
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(Fmt.tokens(s.todayTokens)).font(.system(size: 13, weight: .bold, design: .rounded)).foregroundStyle(ink)
+                        Text("hoje").font(.system(size: 9, design: .monospaced)).foregroundStyle(faded)
+                        Spacer(minLength: 4)
+                        if let r = s.sessionResetsAt {
+                            (Text("↻ ") + Text(r, style: .relative)).font(.system(size: 9, design: .monospaced)).foregroundStyle(faded).lineLimit(1)
+                        }
                     }
                 }
+                .padding(12)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(paper)
             }
-            .padding(12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(paper)
         }
     }
 }
@@ -182,52 +194,61 @@ struct LargeView: View {
     let e: Entry
     var body: some View {
         let s = e.snap
-        VStack(spacing: 0) {
-            HStack(alignment: .bottom, spacing: 0) {
-                ChefSide(s: s, pixel: 4)
-                Spacer(minLength: 8)
-                VStack(alignment: .trailing, spacing: 0) {
-                    Caption(text: "Sessão", color: paper.opacity(0.6))
-                    Pct(value: s.sessionPct, size: 52, color: paper)
+        GeometryReader { geo in
+            let h = geo.size.height
+            let pad = min(16, h * 0.045)
+            let header = h * 0.34
+            let dial = min(76, h * 0.2)
+            VStack(spacing: 0) {
+                HStack(alignment: .bottom, spacing: 0) {
+                    ChefSide(s: s, pixel: min(4, (header - 2 * pad - 50) / CGFloat(Sprites.height)))
+                    Spacer(minLength: 8)
+                    VStack(alignment: .trailing, spacing: 0) {
+                        Caption(text: "Sessão", color: paper.opacity(0.6))
+                        Pct(value: s.sessionPct, size: min(52, header * 0.42), color: paper)
+                    }
                 }
+                .padding(pad)
+                .frame(height: header)
+                .frame(maxWidth: .infinity)
+                .background(ink)
+                VStack(alignment: .leading, spacing: 0) {
+                    ToolBar(s: s)
+                    if let p = s.project {
+                        Text("em \(p)").font(.system(size: 9, design: .monospaced)).foregroundStyle(faded).lineLimit(1)
+                            .padding(.top, 4)
+                    }
+                    Spacer(minLength: 4)
+                    HStack {
+                        Spacer()
+                        VStack(spacing: 3) {
+                            Dial(pct: s.sessionPct, label: "sessão", footnote: "", size: dial)
+                            Resets(date: s.sessionResetsAt).font(.system(size: 9, design: .monospaced)).foregroundStyle(faded).lineLimit(1)
+                        }
+                        Spacer()
+                        VStack(spacing: 3) {
+                            Dial(pct: s.weekPct, label: "semana", footnote: "", size: dial)
+                            Resets(date: s.weekResetsAt).font(.system(size: 9, design: .monospaced)).foregroundStyle(faded).lineLimit(1)
+                        }
+                        Spacer()
+                    }
+                    Spacer(minLength: 4)
+                    Rectangle().fill(ink).frame(height: 1)
+                    HStack(alignment: .lastTextBaseline) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Caption(text: "Tokens hoje")
+                            Text(Fmt.tokens(s.todayTokens)).font(.system(size: 20, weight: .bold, design: .rounded)).foregroundStyle(ink)
+                        }
+                        Spacer(minLength: 4)
+                        Text("média 7d: \(Fmt.tokens(s.avg7dTokens))/dia\n" + (s.liveAt.map { "● ao vivo · \(Fmt.time($0))" } ?? "estimado"))
+                            .font(.system(size: 9, design: .monospaced)).foregroundStyle(faded).multilineTextAlignment(.trailing)
+                    }
+                    .padding(.top, 6)
+                }
+                .padding(pad)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .background(paper)
             }
-            .padding(18)
-            .frame(height: 150)
-            .frame(maxWidth: .infinity)
-            .background(ink)
-            VStack(alignment: .leading, spacing: 10) {
-                Caption(text: "No fogo agora")
-                ToolBar(s: s)
-                if let p = s.project {
-                    Text("em \(p)").font(.system(size: 9, design: .monospaced)).foregroundStyle(faded).lineLimit(1)
-                }
-                HStack {
-                    Spacer()
-                    VStack(spacing: 4) {
-                        Dial(pct: s.sessionPct, label: "sessão", footnote: "", size: 76)
-                        Resets(date: s.sessionResetsAt).font(.system(size: 9, design: .monospaced)).foregroundStyle(faded).lineLimit(1)
-                    }
-                    Spacer()
-                    VStack(spacing: 4) {
-                        Dial(pct: s.weekPct, label: "semana", footnote: "", size: 76)
-                        Resets(date: s.weekResetsAt).font(.system(size: 9, design: .monospaced)).foregroundStyle(faded).lineLimit(1)
-                    }
-                    Spacer()
-                }
-                Rectangle().fill(ink).frame(height: 1)
-                HStack(alignment: .bottom) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Caption(text: "Tokens hoje")
-                        Text(Fmt.tokens(s.todayTokens)).font(.system(size: 22, weight: .bold, design: .rounded)).foregroundStyle(ink)
-                    }
-                    Spacer()
-                    Text("média 7d: \(Fmt.tokens(s.avg7dTokens))/dia\n" + (s.liveAt.map { "● ao vivo · \(Fmt.time($0))" } ?? "estimado"))
-                        .font(.system(size: 9, design: .monospaced)).foregroundStyle(faded).multilineTextAlignment(.trailing)
-                }
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(paper)
         }
     }
 }
