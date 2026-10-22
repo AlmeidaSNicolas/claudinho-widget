@@ -95,9 +95,28 @@ try? FileManager.default.createDirectory(at: out.appendingPathComponent("widget"
 MainActor.assumeIsolated {
     let e = Entry(date: Date(), snap: .placeholder, missing: false)
     var resting = WidgetSnapshot.placeholder; resting.state = .resting; resting.toolName = nil; resting.toolDetail = nil
-    widget(SmallView(e: e), 158, 158, "pequeno")
-    widget(MediumView(e: e), 345, 158, "medio")
-    widget(LargeView(e: e), 345, 345, "grande")
-    widget(SmallView(e: Entry(date: Date(), snap: resting, missing: false)), 170, 170, "pequeno-descansando")
+    widget(SmallView(s: e.snap), 158, 158, "pequeno")
+    widget(MediumView(s: e.snap), 345, 158, "medio")
+    widget(LargeView(s: e.snap), 345, 345, "grande")
+    widget(SmallView(s: resting), 170, 170, "pequeno-descansando")
+}
+// O Claudinho de mesa animado: o cartão médio passando por alguns estados, 2 quadros cada.
+MainActor.assumeIsolated {
+    let url = out.appendingPathComponent("mesa.gif")
+    let steps: [(ChefState, String?, String?)] = [(.thinking, nil, nil), (.chopping, "Edit", "App.swift"),
+                                                 (.frying, "Bash", "Roda os testes"), (.plating, nil, nil)]
+    let dest = CGImageDestinationCreateWithURL(url as CFURL, UTType.gif.identifier as CFString, steps.count * 4, nil)!
+    CGImageDestinationSetProperties(dest, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]] as CFDictionary)
+    for (state, tool, detail) in steps {
+        var snap = WidgetSnapshot.placeholder
+        snap.state = state; snap.toolName = tool; snap.toolDetail = detail
+        for frame in [0, 1, 0, 1] {
+            let v = Card(size: .medio, s: snap, frame: frame).frame(width: 345, height: 158)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous)).padding(10).background(Color(white: 0.12))
+            let r = ImageRenderer(content: v); r.scale = 2
+            CGImageDestinationAddImage(dest, r.cgImage!, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 0.7]] as CFDictionary)
+        }
+    }
+    CGImageDestinationFinalize(dest)
 }
 print("imagens em \(out.path)")

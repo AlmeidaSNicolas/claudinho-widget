@@ -6,6 +6,7 @@ import Combine
 // só existe enquanto está aberto e é descartado ao fechar, pra não ocupar memória.
 final class StatusBarController: NSObject, NSPopoverDelegate {
     private let monitor = Monitor()
+    private var desk: DeskController?
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private var popover: NSPopover?
     private var bag: Set<AnyCancellable> = []
@@ -21,6 +22,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in self?.redraw() }
             .store(in: &bag)
+        desk = DeskController(monitor: monitor)
     }
 
     private func redraw() {
@@ -55,6 +57,20 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     }
 }
 
+enum Instance {
+    enum Decision: Equatable { case run, quit, replaceOthers }
+
+    static func build(of bundle: URL?) -> Int {
+        guard let bundle, let info = Bundle(url: bundle)?.infoDictionary else { return 0 }
+        return Int(info["CFBundleVersion"] as? String ?? "") ?? 0
+    }
+
+    static func decide(mine: Int, others: [Int]) -> Decision {
+        guard let newest = others.max() else { return .run }
+        return mine > newest ? .replaceOthers : .quit
+    }
+}
+
 #if !PREVIEW
 @main
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -69,12 +85,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Aberto pelo Finder com o do login já rodando: fica só um.
+        // Só um Claudinho por vez. Se outro está aberto, fica o de build mais novo: uma cópia
+        // velha (num atalho copiado pra mesa, por exemplo) não pode segurar a atualização.
         let me = ProcessInfo.processInfo.processIdentifier
-        if NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
-            .contains(where: { $0.processIdentifier != me }) {
+        let others = NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
+            .filter { $0.processIdentifier != me }
+        let mine = Instance.build(of: Bundle.main.bundleURL)
+        switch Instance.decide(mine: mine, others: others.map { Instance.build(of: $0.bundleURL) }) {
+        case .quit:
             NSApp.terminate(nil)
             return
+        case .replaceOthers:
+            others.forEach { $0.terminate() }
+        case .run:
+            break
         }
         controller = StatusBarController()
     }

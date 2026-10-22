@@ -13,6 +13,7 @@ final class Monitor: ObservableObject {
     let ticker = Ticker()
     @Published var config = Config.load()
     @Published var calibrating = false
+    @Published var deskSize: CardSize?          // Claudinho de mesa ligado e em que tamanho
 
     @Published var probing = false
     var panelOpen = false
@@ -314,6 +315,7 @@ struct Panel: View {
         Menu {
             Button(m.probing ? "Lendo /usage…" : "Recalibrar agora") { m.probeNow() }.disabled(m.probing)
             Button("Calibrar à mão…") { m.calibrating = true }
+            Menu("Claudinho de mesa") { DeskMenu(monitor: m) }
             Button("Editar config.json") { NSWorkspace.shared.open(Config.url) }
             Button("Atualizar agora") { m.refresh() }
             Divider()

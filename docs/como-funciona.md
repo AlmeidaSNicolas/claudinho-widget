@@ -90,7 +90,17 @@ Na primeira vez o Claude Code pergunta se você confia na pasta `~/.claudinho`. 
 | `/usage` | ~1 s por leitura, no máximo 1 por minuto, e só com atividade nova |
 | Instância | se já tem um Claudinho rodando, o segundo fecha sozinho |
 
-## O widget
+## O Claudinho de mesa
+
+Uma `NSPanel` sem borda e não ativável, com o mesmo `Card` do widget nativo dentro de um `NSHostingView`:
+
+- **Nível:** `desktopIconWindow + 1`, logo acima dos ícones da mesa e abaixo de qualquer janela.
+- **Mesas:** `canJoinAllSpaces` e `stationary`, então aparece em todos os Spaces e não se mexe no Mission Control.
+- **Dados:** observa o mesmo `Monitor` da barra de menu. Muda no mesmo instante que o ícone.
+- **Animação:** usa o mesmo `Ticker`, 1 quadro por segundo e só enquanto o Claude trabalha. Parado, não redesenha.
+- **Posição:** arrastar move a janela (`mouseDownCanMoveWindow`). Tamanho e posição ficam em `~/.claudinho/mesa.json`. Se a posição salva não cabe mais em nenhuma tela (monitor desligado, resolução trocada), o cartão volta pro canto de cima à direita.
+
+## O widget nativo
 
 O widget é uma extensão WidgetKit embutida no app (`Contents/PlugIns/ClaudinhoWidget.appex`). Ele roda em sandbox, então não lê os históricos nem roda o `/usage`:
 

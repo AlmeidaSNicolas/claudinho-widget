@@ -220,11 +220,53 @@ MainActor.assumeIsolated {
         ImageRenderer(content: v.frame(width: w, height: h)).cgImage.map { $0.width == Int(w) && $0.height == Int(h) } == true
     }
     // tamanho real deste macOS e o tamanho maior de outras telas: os dois têm que caber
-    for (w, h) in [(158, 158), (170, 170)] { check(size(SmallView(e: e), CGFloat(w), CGFloat(h)), "widget pequeno renderiza em \(w)x\(h)") }
-    for (w, h) in [(345, 158), (364, 170)] { check(size(MediumView(e: e), CGFloat(w), CGFloat(h)), "widget médio renderiza em \(w)x\(h)") }
-    for (w, h) in [(345, 345), (364, 382)] { check(size(LargeView(e: e), CGFloat(w), CGFloat(h)), "widget grande renderiza em \(w)x\(h)") }
+    for (w, h) in [(158, 158), (170, 170)] { check(size(SmallView(s: e.snap), CGFloat(w), CGFloat(h)), "widget pequeno renderiza em \(w)x\(h)") }
+    for (w, h) in [(345, 158), (364, 170)] { check(size(MediumView(s: e.snap), CGFloat(w), CGFloat(h)), "widget médio renderiza em \(w)x\(h)") }
+    for (w, h) in [(345, 345), (364, 382)] { check(size(LargeView(s: e.snap), CGFloat(w), CGFloat(h)), "widget grande renderiza em \(w)x\(h)") }
     check(size(MissingView(), 170, 170), "widget sem app renderiza")
 }
+
+// MARK: Claudinho de mesa
+section("Claudinho de mesa")
+check(CardSize.allCases.map(\.rawValue) == ["pequeno", "medio", "grande"], "três tamanhos, com nomes estáveis no mesa.json")
+check(CardSize.pequeno.size == CGSize(width: 158, height: 158) && CardSize.grande.size == CGSize(width: 345, height: 345), "tamanhos iguais aos widgets do macOS")
+check(DeskPrefs.load() == DeskPrefs(), "sem mesa.json: desligado e sem posição")
+var prefs = DeskPrefs(size: .medio, x: 100, y: 200)
+prefs.save()
+check(DeskPrefs.url.path.hasPrefix(dataDir.path) && DeskPrefs.load() == prefs, "mesa.json vai e volta igual")
+let screen = CGRect(x: 0, y: 0, width: 1440, height: 875)
+check(prefs.origin(for: .medio, screens: [screen]) == CGPoint(x: 100, y: 200), "posição salva que cabe na tela é mantida")
+let fora = DeskPrefs(size: .grande, x: 2000, y: 100)
+check(fora.origin(for: .grande, screens: [screen]) == CGPoint(x: 1440 - 345 - 140, y: 875 - 345 - 20), "posição fora da tela volta pro canto de cima à direita")
+let segunda = CGRect(x: 1440, y: 0, width: 1920, height: 1080)
+check(fora.origin(for: .grande, screens: [screen, segunda]) == CGPoint(x: 2000, y: 100), "posição numa segunda tela é mantida")
+check(DeskPrefs(size: .pequeno, x: 1400, y: 10).origin(for: .pequeno, screens: [screen]).x == 1440 - 158 - 140, "cartão cortado na borda não conta como dentro")
+check(DeskPrefs().origin(for: .medio, screens: []) == .zero, "sem tela nenhuma não quebra")
+check(Monitor(demo: nil, snapshot: Snapshot()).deskSize == nil, "Monitor de teste começa com a mesa desligada")
+MainActor.assumeIsolated {
+    @MainActor func pixels(_ v: some View, _ size: CGSize) -> Data? {
+        ImageRenderer(content: v.frame(width: size.width, height: size.height)).cgImage?.dataProvider?.data as Data?
+    }
+    var cozinhando = WidgetSnapshot.placeholder; cozinhando.state = .frying
+    for size in CardSize.allCases {
+        let f0 = pixels(Card(size: size, s: cozinhando, frame: 0), size.size)
+        let f1 = pixels(Card(size: size, s: cozinhando, frame: 1), size.size)
+        check(f0 != nil && f1 != nil, "cartão \(size.rawValue) renderiza")
+        check(f0 != f1, "cartão \(size.rawValue) anima: quadro 1 desenha diferente do 0")
+    }
+    let m = Monitor(demo: .frying, snapshot: Snapshot())
+    let desk = ImageRenderer(content: DeskView(monitor: m, ticker: m.ticker, size: .medio)).cgImage
+    check(desk.map { $0.width == 345 && $0.height == 158 } == true, "janela de mesa tem o tamanho do widget médio")
+}
+
+// MARK: instância única
+section("instância única")
+check(Instance.decide(mine: 5, others: []) == .run, "sozinho: roda")
+check(Instance.decide(mine: 9, others: [5]) == .replaceOthers, "versão nova fecha a cópia velha")
+check(Instance.decide(mine: 5, others: [9]) == .quit, "cópia velha fecha sozinha")
+check(Instance.decide(mine: 5, others: [5]) == .quit, "mesma versão aberta duas vezes: a segunda fecha")
+check(Instance.decide(mine: 1792709897, others: [0]) == .replaceOthers, "cópia sem número de build (0.2) perde pra atual")
+check(Instance.build(of: nil) == 0 && Instance.build(of: URL(fileURLWithPath: "/nao/existe.app")) == 0, "build de app que não existe é 0")
 
 print("\n\(passed) ok, \(failures) falha(s)")
 exit(failures == 0 ? 0 : 1)

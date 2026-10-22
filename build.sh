@@ -63,7 +63,7 @@ sed -e "s/VERSION/$VERSION/" -e "s/BUILD/$BUILD/" Widget/Info.plist > "$WIDGET/C
 # -e _NSExtensionMain: extensão começa pelo Foundation, como o Xcode faz. Sem isso o
 # widget trava ao abrir, no ExtensionFoundation (veja docs/problemas.md).
 $SWIFTC -parse-as-library -application-extension -Xlinker -e -Xlinker _NSExtensionMain \
-  Sources/Sprites.swift Sources/Style.swift Sources/WidgetData.swift Widget/ClaudinhoWidget.swift \
+  Sources/Sprites.swift Sources/Style.swift Sources/WidgetData.swift Sources/CardViews.swift Widget/ClaudinhoWidget.swift \
   -o "$WIDGET/Contents/MacOS/ClaudinhoWidget"
 # primeiro o widget (com o sandbox), depois o app por fora
 codesign --force --sign "$SIGN" --entitlements Widget/Widget.entitlements "$WIDGET" >/dev/null 2>&1
