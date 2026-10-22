@@ -4,9 +4,8 @@
 #   ./build.sh --preview   -> regenera as imagens do README em docs/img
 #   ./build.sh --icon      -> regenera Resources/AppIcon.icns a partir do sprite
 #
-# O widget nativo (WidgetKit) só entra com um certificado de desenvolvedor: o macOS derruba
-# widgets assinados ad hoc. Veja docs/problemas.md. O certificado "Apple Development" do
-# chaveiro é achado sozinho; pra escolher outro:
+# Assinatura: usa o certificado "Apple Development" do chaveiro se tiver, senão ad hoc.
+# Os dois funcionam. Pra escolher outro:
 #   CLAUDINHO_SIGN_IDENTITY="Apple Development: Fulano (ABCDE12345)" ./build.sh
 set -e
 cd "$(dirname "$0")"
@@ -58,20 +57,16 @@ sed -i '' -e "s/VERSION/$VERSION/" -e "s/BUILD/$BUILD/" "$APP/Contents/Info.plis
 $SWIFTC -parse-as-library Sources/*.swift -o "$APP/Contents/MacOS/Claudinho"
 
 SIGN=$(tools/identidade.sh)
-if [[ "$SIGN" != "-" ]]; then
-  # Widget: extensão embutida no app, com só as peças de desenho e o arquivo de dados.
-  mkdir -p "$WIDGET/Contents/MacOS"
-  sed -e "s/VERSION/$VERSION/" -e "s/BUILD/$BUILD/" Widget/Info.plist > "$WIDGET/Contents/Info.plist"
-  $SWIFTC -parse-as-library -application-extension \
-    Sources/Sprites.swift Sources/Style.swift Sources/WidgetData.swift Widget/ClaudinhoWidget.swift \
-    -o "$WIDGET/Contents/MacOS/ClaudinhoWidget"
-  # primeiro o widget (com o sandbox), depois o app por fora
-  codesign --force --sign "$SIGN" --entitlements Widget/Widget.entitlements "$WIDGET" >/dev/null 2>&1
-fi
+# Widget: extensão embutida no app, com só as peças de desenho e o arquivo de dados.
+mkdir -p "$WIDGET/Contents/MacOS"
+sed -e "s/VERSION/$VERSION/" -e "s/BUILD/$BUILD/" Widget/Info.plist > "$WIDGET/Contents/Info.plist"
+# -e _NSExtensionMain: extensão começa pelo Foundation, como o Xcode faz. Sem isso o
+# widget trava ao abrir, no ExtensionFoundation (veja docs/problemas.md).
+$SWIFTC -parse-as-library -application-extension -Xlinker -e -Xlinker _NSExtensionMain \
+  Sources/Sprites.swift Sources/Style.swift Sources/WidgetData.swift Widget/ClaudinhoWidget.swift \
+  -o "$WIDGET/Contents/MacOS/ClaudinhoWidget"
+# primeiro o widget (com o sandbox), depois o app por fora
+codesign --force --sign "$SIGN" --entitlements Widget/Widget.entitlements "$WIDGET" >/dev/null 2>&1
 codesign --force --sign "$SIGN" "$APP" >/dev/null 2>&1
-if [[ "$SIGN" == "-" ]]; then
-  echo "(widget nativo fora: nenhum certificado Apple Development no chaveiro)"
-else
-  echo "(widget nativo dentro, assinado com $SIGN)"
-fi
+[[ "$SIGN" == "-" ]] && echo "(assinatura ad hoc)" || echo "(assinado com $SIGN)"
 echo "ok: $APP"

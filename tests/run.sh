@@ -34,22 +34,21 @@ mv "$TMP/fake/security-vazio" "$TMP/fake/security"
 echo "certificado ok (acha sozinho, cai pra ad hoc, a variável manda)"
 
 echo "\n== build do app"
-./build.sh >/dev/null
-plutil -lint -s build/Claudinho.app/Contents/Info.plist
-codesign -v build/Claudinho.app
-W=build/Claudinho.app/Contents/PlugIns/ClaudinhoWidget.appex
-if [[ $(tools/identidade.sh) != "-" ]]; then
+check_build() {
+  ./build.sh >/dev/null
+  plutil -lint -s build/Claudinho.app/Contents/Info.plist
+  codesign -v build/Claudinho.app
+  W=build/Claudinho.app/Contents/PlugIns/ClaudinhoWidget.appex
   plutil -lint -s "$W/Contents/Info.plist"
   [[ $(plutil -extract NSExtension.NSExtensionPointIdentifier raw "$W/Contents/Info.plist") == com.apple.widgetkit-extension ]]
   [[ $(plutil -extract CFBundleIdentifier raw "$W/Contents/Info.plist") == local.claudinho.monitor.widget ]]
   codesign -d --entitlements - "$W" 2>/dev/null | grep -q app-sandbox
   codesign -d --entitlements - "$W" 2>/dev/null | grep -q /.claudinho/
   codesign -v "$W"
-  echo "app ok (com o widget nativo embutido, em sandbox, lendo só ~/.claudinho)"
-else
-  [[ ! -d "$W" ]]   # sem certificado, o widget que trava não pode ir junto
-  # o widget ainda tem que compilar como extensão, pra não apodrecer até ter certificado
-  swiftc -swift-version 5 -target arm64-apple-macos14.0 -parse-as-library -application-extension \
-    Sources/Sprites.swift Sources/Style.swift Sources/WidgetData.swift Widget/ClaudinhoWidget.swift -o "$TMP/bin/widget"
-  echo "app ok (sem o widget nativo: falta certificado; o código dele compila e é testado)"
-fi
+  # o ponto de entrada tem que ser o _NSExtensionMain, senão o widget trava ao abrir
+  nm -u "$W/Contents/MacOS/ClaudinhoWidget" | grep -q _NSExtensionMain
+  echo "app ok com o widget embutido (assinatura: $(tools/identidade.sh))"
+}
+CLAUDINHO_SIGN_IDENTITY=- check_build
+[[ $(env -u CLAUDINHO_SIGN_IDENTITY tools/identidade.sh) != "-" ]] && (unset CLAUDINHO_SIGN_IDENTITY; check_build)
+true

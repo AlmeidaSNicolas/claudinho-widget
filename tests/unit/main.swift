@@ -191,8 +191,13 @@ check(Fmt.ago(Date().addingTimeInterval(-12)) == "há 12 s" && Fmt.ago(Date().ad
 
 // MARK: widget
 section("widget")
+// datas em segundos inteiros: frações de segundo podem não sobreviver ao JSON
+func whole(_ d: Date) -> Date { Date(timeIntervalSince1970: d.timeIntervalSince1970.rounded()) }
 var ws = WidgetSnapshot.placeholder
-ws.updatedAt = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded())
+ws.updatedAt = whole(ws.updatedAt)
+ws.sessionResetsAt = ws.sessionResetsAt.map(whole)
+ws.weekResetsAt = ws.weekResetsAt.map(whole)
+ws.liveAt = ws.liveAt.map(whole)
 ws.save()
 check(WidgetSnapshot.url.path.hasPrefix(dataDir.path), "widget.json fica na pasta do Claudinho")
 check(WidgetSnapshot.load() == ws, "widget.json vai e volta igual")

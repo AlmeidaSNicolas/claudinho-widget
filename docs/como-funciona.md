@@ -99,7 +99,7 @@ O widget é uma extensão WidgetKit embutida no app (`Contents/PlugIns/Claudinho
 3. O widget lê o arquivo pelo `temporary-exception.files.home-relative-path.read-only` (`/.claudinho/`) e se redesenha. Sozinho, ele só se atualiza a cada 15 min.
 4. Se o arquivo tem mais de 15 min, o app está fechado ou o Mac dormiu: o widget mostra "Descansando" e zera a sessão se a janela já renovou.
 
-O app é assinado ad hoc (`codesign --sign -`), sem conta de desenvolvedor. O widget não: o macOS só roda extensão de widget assinada com certificado, então ele só entra no build quando `tools/identidade.sh` acha um certificado "Apple Development" no chaveiro (ou com `CLAUDINHO_SIGN_IDENTITY`).
+O widget é linkado com `-e _NSExtensionMain`, como o Xcode faz com extensões; sem isso ele trava ao abrir. O app e o widget são assinados com o certificado "Apple Development" do chaveiro, se tiver, ou ad hoc (`codesign --sign -`). Os dois funcionam, sem conta de desenvolvedor. Quem escolhe é `tools/identidade.sh` (ou `CLAUDINHO_SIGN_IDENTITY`).
 
 ## Rodando sozinho
 
