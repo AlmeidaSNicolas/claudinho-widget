@@ -91,11 +91,13 @@ git clone https://github.com/AlmeidaSNicolas/claudinho-widget.git
 cd claudinho-widget
 ./install.sh              # compila, copia pra ~/Applications e abre no login
 python3 setup.py          # opcional: liga hooks e statusLine (faz backup do settings.json)
+cd .. && rm -rf claudinho-widget   # opcional: o repo não é mais necessário
 ```
 
 O Claudinho aparece na barra de menu na hora. Se rodou o `setup.py`, reinicie as sessões do Claude Code que já estavam abertas.
 
-**Depois de instalado, o repo pode ser apagado.** O app fica em `~/Applications/Claudinho.app`, e o `setup.py` copia os hooks pra `~/.claudinho/hooks`. Só precisa do repo de novo pra atualizar ou desinstalar.
+> [!TIP]
+> **Depois de instalado, você não precisa mais do repo na máquina e pode apagar a pasta.** O app roda de `~/Applications/Claudinho.app`, e o `setup.py` copia os hooks pra `~/.claudinho/hooks`. Só clone de novo quando quiser atualizar ou desinstalar.
 
 | Onde fica | O quê |
 |---|---|
