@@ -66,9 +66,13 @@ struct DeskMenu: View {
     }
 }
 
-// Arrastar o cartão por qualquer ponto move a janela.
-private final class DraggableHostingView<Content: View>: NSHostingView<Content> {
+// Arrastar o cartão por qualquer ponto move a janela. Só "pode mover pelo fundo" não basta:
+// o SwiftUI fica com o clique e a janela não sai do lugar. E como o app nunca fica ativo,
+// sem acceptsFirstMouse o primeiro clique só serviria pra ativar a janela.
+final class DraggableHostingView<Content: View>: NSHostingView<Content> {
     override var mouseDownCanMoveWindow: Bool { true }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override func mouseDown(with event: NSEvent) { window?.performDrag(with: event) }
 }
 
 final class DeskController: NSObject, NSWindowDelegate {

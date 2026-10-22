@@ -257,6 +257,8 @@ MainActor.assumeIsolated {
     let m = Monitor(demo: .frying, snapshot: Snapshot())
     let desk = ImageRenderer(content: DeskView(monitor: m, ticker: m.ticker, size: .medio)).cgImage
     check(desk.map { $0.width == 345 && $0.height == 158 } == true, "janela de mesa tem o tamanho do widget médio")
+    let host = DraggableHostingView(rootView: Text("x"))
+    check(host.mouseDownCanMoveWindow && host.acceptsFirstMouse(for: nil), "cartão da mesa arrasta já no primeiro clique")
 }
 
 // MARK: instância única
