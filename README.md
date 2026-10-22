@@ -1,17 +1,19 @@
 <p align="center"><img src="docs/img/icone.png" alt="Ícone do app: o Claudinho chef ao lado de uma panela" width="128"></p>
 
-<h1 align="center">Claudinho na barra de menu</h1>
+<h1 align="center">Claudinho</h1>
 
 <p align="center">
-O Claudinho chef mora na barra de menu do Mac: ele mostra o que o Claude Code está cozinhando agora<br>
-e quanto da sua janela de uso já foi pro fogo. Sem Kindle, sem servidor, sem Python obrigatório.
+O Claudinho chef mora na barra de menu e na mesa do Mac: ele mostra o que o Claude Code está cozinhando agora<br>
+e quanto da sua janela de uso já foi pro fogo, ao vivo. Sem Kindle, sem servidor, sem Python obrigatório.
 </p>
 
 <p align="center">
-  <img src="docs/img/painel.gif" alt="Painel alternando entre trabalhando, pedindo permissão, esperando e descansando" width="640">
+  <img src="docs/video/claudinho-showcase.gif" alt="Vídeo: o painel na barra de menu passando pelos estados, o Claudinho de mesa gravado ao vivo e os três tamanhos" width="800">
 </p>
 
-<p align="center"><sub>Telas geradas pelo próprio app em modo demo (<code>./build.sh --preview</code>).</sub></p>
+<p align="center">
+  <sub>▶ <a href="docs/video/claudinho-showcase.mp4">Assistir em alta qualidade (MP4, 1080p, 29 s)</a> · o trecho da mesa foi gravado ao vivo, da janela do Claudinho de mesa</sub>
+</p>
 
 > **Ideia original:** [kindle-claude](https://github.com/guithepc/kindle-claude), de **Guilherme Pessoa** ([@guithepc](https://github.com/guithepc) · @pctheonee), que transformou um Kindle velho num painel do Claude Code com o Claudinho chef. Este projeto é uma releitura dele pra barra de menu do Mac. Veja os [créditos](#créditos).
 
@@ -27,6 +29,12 @@ Clicando nele abre um painel no estilo e-ink com:
 - **Quanto da janela de uso já foi**: % da sessão de 5h e % da semana, em anéis segmentados, com a hora em que cada um zera.
 - **Tokens de hoje** e a média diária dos últimos 7 dias.
 - **O Claudinho chef**, um mascote em pixel art que muda de animação conforme o estado.
+
+<p align="center">
+  <img src="docs/img/painel.gif" alt="Painel alternando entre trabalhando, pedindo permissão, esperando e descansando" width="640">
+</p>
+
+<p align="center"><sub>Telas geradas pelo próprio app em modo demo (<code>./build.sh --preview</code>).</sub></p>
 
 É uma releitura do [kindle-claude](https://github.com/guithepc/kindle-claude) pra quem não tem um Kindle sobrando: a mesma ideia e o mesmo clima de cozinha, só que num app nativo de ~38 MB que acompanha o uso ao vivo e fica parado quando você também está.
 
@@ -191,7 +199,7 @@ claudinho-widget/
 ├── setup.py               liga/desliga hooks e statusLine no ~/.claude/settings.json (com backup)
 ├── build.sh               compila o .app (ou as imagens, com --preview)
 ├── install.sh             instala em ~/Applications e registra o LaunchAgent
-└── docs/                  funcionamento, design, problemas e imagens
+└── docs/                  funcionamento, design, problemas, imagens e o vídeo (docs/video)
 ```
 
 ## Limitações
