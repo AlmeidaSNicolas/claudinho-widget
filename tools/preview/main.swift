@@ -27,7 +27,7 @@ func writePNG(_ cg: CGImage, _ url: URL) {
 
 @MainActor func panel(_ state: ChefState, tool: String?, detail: String?, name: String) {
     let m = Monitor(demo: state, snapshot: demoSnapshot(tool: tool, detail: detail))
-    m.config.calibration = Calibration(at: Date(), sessionPct: 0.13, sessionResetsAt: Date(), weekPct: 0.31, source: "statusLine")
+    m.config.calibration = Calibration(at: Date().addingTimeInterval(-12), sessionPct: 0.13, sessionResetsAt: Date(), weekPct: 0.31, source: "statusLine")
     let r = ImageRenderer(content: Panel(m: m).environment(\.colorScheme, .light))
     r.scale = 2
     writePNG(r.cgImage!, out.appendingPathComponent("estados/\(name).png"))

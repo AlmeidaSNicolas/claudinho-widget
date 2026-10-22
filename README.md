@@ -13,6 +13,8 @@ e quanto da sua janela de uso já foi pro fogo. Sem Kindle, sem servidor, sem Py
 
 <p align="center"><sub>Telas geradas pelo próprio app em modo demo (<code>./build.sh --preview</code>).</sub></p>
 
+> **Ideia original:** [kindle-claude](https://github.com/guithepc/kindle-claude), de **Guilherme Pessoa** ([@guithepc](https://github.com/guithepc) · @pctheonee), que transformou um Kindle velho num painel do Claude Code com o Claudinho chef. Este projeto é uma releitura dele pra barra de menu do Mac. Veja os [créditos](#créditos).
+
 ## O que é
 
 Na barra de menu fica o Claudinho animado e o % da sessão:
@@ -26,7 +28,7 @@ Clicando nele abre um painel no estilo e-ink com:
 - **Tokens de hoje** e a média diária dos últimos 7 dias.
 - **O Claudinho chef**, um mascote em pixel art que muda de animação conforme o estado.
 
-É uma releitura do [kindle-claude](https://github.com/guithepc/kindle-claude) pra quem não tem um Kindle sobrando: a mesma ideia e o mesmo clima de cozinha, só que num app nativo de 37 MB que fica parado quando você também está.
+É uma releitura do [kindle-claude](https://github.com/guithepc/kindle-claude) pra quem não tem um Kindle sobrando: a mesma ideia e o mesmo clima de cozinha, só que num app nativo de ~38 MB que acompanha o uso ao vivo e fica parado quando você também está.
 
 ## Os estados
 
@@ -85,7 +87,7 @@ O estado (pensando, ferramenta, terminou) vem dos **hooks** quando estão ligado
 ### Passo a passo
 
 ```sh
-git clone <url-deste-repo> claudinho-widget
+git clone https://github.com/AlmeidaSNicolas/claudinho-widget.git
 cd claudinho-widget
 ./install.sh              # compila, copia pra ~/Applications e abre no login
 python3 setup.py          # opcional: liga hooks e statusLine (faz backup do settings.json)
@@ -93,7 +95,14 @@ python3 setup.py          # opcional: liga hooks e statusLine (faz backup do set
 
 O Claudinho aparece na barra de menu na hora. Se rodou o `setup.py`, reinicie as sessões do Claude Code que já estavam abertas.
 
-> A pasta precisa se chamar `claudinho-widget`. O `setup.py` usa o nome pra reconhecer os próprios hooks na hora de remover.
+**Depois de instalado, o repo pode ser apagado.** O app fica em `~/Applications/Claudinho.app`, e o `setup.py` copia os hooks pra `~/.claudinho/hooks`. Só precisa do repo de novo pra atualizar ou desinstalar.
+
+| Onde fica | O quê |
+|---|---|
+| `~/Applications/Claudinho.app` | o app |
+| `~/Library/LaunchAgents/local.claudinho.monitor.plist` | abre o app no login |
+| `~/.claudinho/` | config, hooks copiados e o que eles gravam |
+| `~/.claude/settings.json` | as entradas dos hooks e da statusLine (com backup ao lado) |
 
 ### Configuração
 
@@ -117,11 +126,12 @@ Os limites se ajustam sozinhos a cada leitura real em que o % andou. Normalmente
 | Ler o uso real agora | ⋯ → **Recalibrar agora** (lê o `/usage`) |
 | Calibrar à mão | ⋯ → **Calibrar à mão…** e copiar os números do `/usage` |
 | Sair | ⋯ → **Sair do Claudinho** (volta no próximo login) |
-| Atualizar depois de mexer no código | `./install.sh` |
+| Atualizar depois de mexer no código | `./install.sh` (e `python3 setup.py` se mexeu nos hooks) |
 | Regenerar as imagens do README | `./build.sh --preview` |
 | Regenerar o ícone do app | `./build.sh --icon` |
 | Remover hooks e statusLine | `python3 setup.py remover` |
 | Desinstalar o app | `./install.sh --uninstall` |
+| Desinstalar sem o repo | `launchctl bootout gui/$UID/local.claudinho.monitor`, apagar os itens da tabela acima e tirar os hooks do `~/.claude/settings.json` |
 
 Com a tampa fechada o Mac dorme, e o Claudinho junto. Quando acorda, ele atualiza na hora.
 
@@ -163,7 +173,17 @@ Problemas encontrados no caminho e como resolver: [docs/problemas.md](docs/probl
 
 ## Créditos
 
-Ideia, clima de cozinha e a arquitetura de hooks + statusLine vêm do [kindle-claude](https://github.com/guithepc/kindle-claude), de Guilherme Pessoa (MIT). Sprites, anéis e telas daqui foram desenhados do zero, em código.
+Este projeto não existiria sem o **[kindle-claude](https://github.com/guithepc/kindle-claude)**, de **Guilherme Pessoa** ([@guithepc](https://github.com/guithepc) no GitHub, @pctheonee). Dele vêm:
+
+- **a ideia**: um painel de mesa que mostra o que o Claude Code está fazendo e quanto do limite já foi;
+- **o Claudinho chef** e o clima de cozinha: "no fogo agora", panelas, cebola, frigideira, sino, cochilo com café;
+- **o layout do painel**: mascote no lado escuro, anéis de sessão e semana no lado claro, tokens do dia embaixo;
+- **a arquitetura de hooks + statusLine**: `hooks/hook.py`, `hooks/statusline.py` e `setup.py` foram adaptados dos dele (licença MIT, com o aviso de copyright mantido em [LICENSE](LICENSE));
+- **a pixel art escrita em texto**, em vez de desenhada num editor.
+
+Daqui são o app nativo da barra de menu, a leitura ao vivo do `/usage`, a projeção por tokens ponderados e os sprites, anéis, telas e ícone, redesenhados do zero em código.
+
+Vai lá dar uma estrela no [repo original](https://github.com/guithepc/kindle-claude). ⭐
 
 > Projeto pessoal, sem afiliação com a Anthropic. O Claudinho é fan art inspirada no mascote do Claude Code.
 

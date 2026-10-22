@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """statusLine do Claude Code: guarda o % exato da sessão (5h) e da semana em
 ~/.claudinho/statusline.json pro Claudinho, e imprime a linha de status.
-Se você já tinha uma statusLine, ela continua aparecendo no lugar desta."""
+Se você já tinha uma statusLine, ela continua aparecendo no lugar desta.
+
+Adaptado do kindle-claude, de Guilherme Pessoa (MIT):
+https://github.com/guithepc/kindle-claude
+"""
 import json
 import os
 import subprocess

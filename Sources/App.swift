@@ -339,9 +339,10 @@ struct Panel: View {
                     }
                     Spacer()
                     Text("média 7d: \(Fmt.tokens(s.avg7dTokens))/dia\n" + (s.calibrated
-                         ? "ao vivo via \(m.config.calibration!.source ?? "/usage") · \(Fmt.ago(m.config.calibration!.at))"
+                         ? "● ao vivo · \(Fmt.ago(m.config.calibration!.at))"
                          : "% estimado pelos logs"))
                         .font(.system(size: 9, design: .monospaced)).foregroundStyle(faded).multilineTextAlignment(.trailing)
+                        .help(s.calibrated ? "última leitura real via \(m.config.calibration!.source ?? "/usage")" : "sem leitura real nesta janela")
                 }
             }
             .padding(16)

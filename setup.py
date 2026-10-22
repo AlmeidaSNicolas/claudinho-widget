@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """Liga (ou desliga) os hooks e a statusLine do Claudinho no
 ~/.claude/settings.json. Faz backup antes de mexer e não apaga o que já existe.
+Os scripts são copiados pra ~/.claudinho/hooks, então o repo pode ser apagado depois.
 
     python3 setup.py            # instala
     python3 setup.py remover    # desfaz
+
+Adaptado do kindle-claude, de Guilherme Pessoa (MIT):
+https://github.com/guithepc/kindle-claude
 """
 import json
 import os
@@ -16,15 +20,21 @@ DATA = os.path.expanduser(os.environ.get("CLAUDINHO_DIR", "~/.claudinho"))
 ORIG = os.path.join(DATA, "orig_statusline.txt")
 SETTINGS = os.path.expanduser(os.environ.get("CLAUDINHO_SETTINGS", "~/.claude/settings.json"))
 PY = "/usr/bin/python3" if os.path.exists("/usr/bin/python3") else (sys.executable or "python3")
-HOOK_CMD = f'"{PY}" "{os.path.join(BASE, "hooks", "hook.py")}"'
-STATUS_CMD = f'"{PY}" "{os.path.join(BASE, "hooks", "statusline.py")}"'
+HOOKS = os.path.join(DATA, "hooks")
+HOOK_CMD = f'"{PY}" "{os.path.join(HOOKS, "hook.py")}"'
+STATUS_CMD = f'"{PY}" "{os.path.join(HOOKS, "statusline.py")}"'
 EVENTS = {"PreToolUse": "*", "PostToolUse": "*", "UserPromptSubmit": None,
           "Notification": None, "Stop": None, "SessionEnd": None}
-MARK = "claudinho-widget"
+# "claudinho-widget" reconhece instalações antigas, que apontavam pra pasta do repo.
+MARKS = (HOOKS, "claudinho-widget")
+
+
+def mine(cmd):
+    return any(m in (cmd or "") for m in MARKS)
 
 
 def ours(entry):
-    return any(MARK in (h.get("command") or "") for h in entry.get("hooks", []))
+    return any(mine(h.get("command")) for h in entry.get("hooks", []))
 
 
 def load():
@@ -46,8 +56,9 @@ def save(cfg):
 
 
 def install():
-    if MARK not in BASE:
-        sys.exit(f"A pasta do repo precisa se chamar {MARK} (o setup usa o nome pra achar os próprios hooks).")
+    os.makedirs(HOOKS, exist_ok=True)
+    for name in ("hook.py", "statusline.py"):
+        shutil.copy2(os.path.join(BASE, "hooks", name), os.path.join(HOOKS, name))
     cfg = load()
     hooks = cfg.setdefault("hooks", {})
     for event, matcher in EVENTS.items():
@@ -59,7 +70,7 @@ def install():
         hooks[event] = lst
 
     current = (cfg.get("statusLine") or {}).get("command", "")
-    if current and MARK not in current:
+    if current and not mine(current):
         os.makedirs(DATA, exist_ok=True)
         with open(ORIG, "w", encoding="utf-8") as f:
             f.write(current)
@@ -78,7 +89,7 @@ def remove():
             del hooks[event]
     if not hooks:
         cfg.pop("hooks", None)
-    if MARK in (cfg.get("statusLine") or {}).get("command", ""):
+    if mine((cfg.get("statusLine") or {}).get("command", "")):
         old = open(ORIG, encoding="utf-8").read().strip() if os.path.exists(ORIG) else ""
         if old:
             cfg["statusLine"] = {"type": "command", "command": old}

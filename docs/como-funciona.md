@@ -29,19 +29,19 @@ Por modelo: Opus 1, Sonnet 0,6, Haiku 0,2.
 
 ### Estado e permissão: hooks (opcional)
 
-`python3 setup.py` adiciona estes hooks ao `~/.claude/settings.json`, sem remover os que já existem, e faz backup antes:
+`python3 setup.py` copia `hooks/hook.py` e `hooks/statusline.py` pra `~/.claudinho/hooks` e adiciona estes hooks ao `~/.claude/settings.json`, sem remover os que já existem, e faz backup antes. Como os scripts ficam fora do repo, ele pode ser apagado depois:
 
 ```json
 {
   "hooks": {
-    "PreToolUse":       [{ "matcher": "*", "hooks": [{ "type": "command", "command": "\"/usr/bin/python3\" \"<REPO>/hooks/hook.py\"" }] }],
+    "PreToolUse":       [{ "matcher": "*", "hooks": [{ "type": "command", "command": "\"/usr/bin/python3\" \"~/.claudinho/hooks/hook.py\"" }] }],
     "PostToolUse":      [{ "matcher": "*", "hooks": [{ "type": "command", "command": "..." }] }],
     "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "..." }] }],
     "Notification":     [{ "hooks": [{ "type": "command", "command": "..." }] }],
     "Stop":             [{ "hooks": [{ "type": "command", "command": "..." }] }],
     "SessionEnd":       [{ "hooks": [{ "type": "command", "command": "..." }] }]
   },
-  "statusLine": { "type": "command", "command": "\"/usr/bin/python3\" \"<REPO>/hooks/statusline.py\"" }
+  "statusLine": { "type": "command", "command": "\"/usr/bin/python3\" \"~/.claudinho/hooks/statusline.py\"" }
 }
 ```
 

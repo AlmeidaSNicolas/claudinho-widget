@@ -9,6 +9,9 @@ Só usa a biblioteca padrão, nunca imprime nada e nunca falha.
   Notification     -> pedindo permissão ou esperando você
   Stop             -> terminou
   SessionEnd       -> sessão fechada
+
+Adaptado do kindle-claude, de Guilherme Pessoa (MIT):
+https://github.com/guithepc/kindle-claude
 """
 import fcntl
 import json
