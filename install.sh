@@ -3,6 +3,7 @@
 # (e voltar se fechar com erro). "Sair" no menu fecha de verdade até o próximo login.
 # Desinstalar: ./install.sh --uninstall
 set -e
+: "${HOME:?HOME vazio, abortando pra não apagar nada fora da pasta do usuário}"
 cd "$(dirname "$0")"
 LABEL=local.claudinho.monitor
 DEST="$HOME/Applications/Claudinho.app"
