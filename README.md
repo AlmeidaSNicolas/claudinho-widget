@@ -15,8 +15,6 @@ e quanto da sua janela de uso já foi pro fogo, ao vivo. Sem Kindle, sem servido
   <sub>▶ <a href="docs/video/claudinho-showcase.mp4">Assistir em alta qualidade (MP4, 1080p, 29 s)</a> · o trecho da mesa foi gravado ao vivo, da janela do Claudinho de mesa</sub>
 </p>
 
-> **Ideia original:** [kindle-claude](https://github.com/guithepc/kindle-claude), de **Guilherme Pessoa** ([@guithepc](https://github.com/guithepc) · @pctheonee), que transformou um Kindle velho num painel do Claude Code com o Claudinho chef. Este projeto é uma releitura dele pra barra de menu do Mac. Veja os [créditos](#créditos).
-
 ## O que é
 
 Na barra de menu fica o Claudinho animado e o % da sessão:
