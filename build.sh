@@ -5,7 +5,8 @@
 #   ./build.sh --icon      -> regenera Resources/AppIcon.icns a partir do sprite
 #
 # O widget nativo (WidgetKit) só entra com um certificado de desenvolvedor: o macOS derruba
-# widgets assinados ad hoc. Veja docs/problemas.md.
+# widgets assinados ad hoc. Veja docs/problemas.md. O certificado "Apple Development" do
+# chaveiro é achado sozinho; pra escolher outro:
 #   CLAUDINHO_SIGN_IDENTITY="Apple Development: Fulano (ABCDE12345)" ./build.sh
 set -e
 cd "$(dirname "$0")"
@@ -56,7 +57,7 @@ PLIST
 sed -i '' -e "s/VERSION/$VERSION/" -e "s/BUILD/$BUILD/" "$APP/Contents/Info.plist"
 $SWIFTC -parse-as-library Sources/*.swift -o "$APP/Contents/MacOS/Claudinho"
 
-SIGN="${CLAUDINHO_SIGN_IDENTITY:--}"
+SIGN=$(tools/identidade.sh)
 if [[ "$SIGN" != "-" ]]; then
   # Widget: extensão embutida no app, com só as peças de desenho e o arquivo de dados.
   mkdir -p "$WIDGET/Contents/MacOS"
@@ -68,5 +69,9 @@ if [[ "$SIGN" != "-" ]]; then
   codesign --force --sign "$SIGN" --entitlements Widget/Widget.entitlements "$WIDGET" >/dev/null 2>&1
 fi
 codesign --force --sign "$SIGN" "$APP" >/dev/null 2>&1
-[[ "$SIGN" == "-" ]] && echo "(widget nativo fora: precisa de CLAUDINHO_SIGN_IDENTITY)"
+if [[ "$SIGN" == "-" ]]; then
+  echo "(widget nativo fora: nenhum certificado Apple Development no chaveiro)"
+else
+  echo "(widget nativo dentro, assinado com $SIGN)"
+fi
 echo "ok: $APP"

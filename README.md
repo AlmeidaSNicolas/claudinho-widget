@@ -41,14 +41,13 @@ Também dá pra deixar o Claudinho na mesa ou na Central de Notificações, junt
 <p align="center"><img src="docs/img/widget/grande.png" alt="Widget grande" width="380"></p>
 
 > [!IMPORTANT]
-> **O widget nativo precisa de um certificado de desenvolvedor.** O macOS derruba qualquer widget assinado ad hoc, até um de 20 linhas (veja [problemas.md](docs/problemas.md)). Com o Xcode instalado e um Apple ID (grátis) em Xcode → Settings → Accounts, você ganha um certificado "Apple Development". Aí é só compilar com ele:
+> **O widget nativo precisa de um certificado de desenvolvedor.** O macOS derruba qualquer widget assinado ad hoc, até um de 20 linhas (veja [problemas.md](docs/problemas.md)). O certificado é grátis:
 >
-> ```sh
-> security find-identity -v -p codesigning          # copie o nome do certificado
-> CLAUDINHO_SIGN_IDENTITY="Apple Development: Seu Nome (ABCDE12345)" ./install.sh
-> ```
+> 1. Instale o Xcode, pela App Store ou baixando o `.xip` em [developer.apple.com/download](https://developer.apple.com/download/) (não precisa de forma de pagamento).
+> 2. No Xcode → Settings → Accounts, entre com um Apple ID qualquer e clique em **Manage Certificates → + → Apple Development**.
+> 3. Rode `./install.sh` de novo. O build acha o certificado sozinho e coloca o widget no app.
 >
-> Sem certificado, o `./install.sh` instala só o app da barra de menu, sem o widget.
+> Sem certificado, o `./install.sh` instala só o app da barra de menu, sem o widget. Pra escolher um certificado específico: `CLAUDINHO_SIGN_IDENTITY="Apple Development: Seu Nome (ABCDE12345)" ./install.sh`.
 
 Pra adicionar: clique com o botão direito na mesa → **Editar Widgets** → procure **Claudinho**.
 
