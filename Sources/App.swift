@@ -22,7 +22,7 @@ final class Monitor: ObservableObject {
     private var lastProbe = Date.distantPast
     private var demoState: ChefState?
     private var ignoredStatusLineAt: Date?
-    private static let probeEvery: TimeInterval = 30 * 60
+    private var watcher: DispatchSourceFileSystemObject?
     var isDemo: Bool { demoState != nil }
 
     init() {
@@ -32,11 +32,29 @@ final class Monitor: ObservableObject {
             guard let self, self.panelOpen || self.state.animated else { return }
             self.ticker.frame += 1
         })
-        timers.append(Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in self?.refresh() })
+        timers.append(Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in self?.refresh() })
         timers.forEach { $0.tolerance = 0.2; RunLoop.main.add($0, forMode: .common) }
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             self?.refresh()
         }
+        watchHookFiles()
+    }
+
+    // Os hooks gravam com os.replace, o que muda a pasta: dá pra reagir na hora, sem esperar o timer.
+    private func watchHookFiles() {
+        try? FileManager.default.createDirectory(at: HookFiles.dir, withIntermediateDirectories: true)
+        let fd = open(HookFiles.dir.path, O_EVTONLY)
+        guard fd >= 0 else { return }
+        let src = DispatchSource.makeFileSystemObjectSource(fileDescriptor: fd, eventMask: .write, queue: .main)
+        var pending = false
+        src.setEventHandler { [weak self] in
+            guard !pending else { return }   // junta rajadas de eventos numa leitura só
+            pending = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { pending = false; self?.refresh() }
+        }
+        src.setCancelHandler { close(fd) }
+        src.resume()
+        watcher = src
     }
 
     // Pra gerar as imagens do README sem ler nada da máquina.
@@ -46,11 +64,14 @@ final class Monitor: ObservableObject {
         self.hook = hook
     }
 
-    // Lê o /usage real a cada 30 min, se o Claude Code foi usado nesse tempo. Roda mesmo com
-    // statusLine, porque no app do Claude ela pode repetir um % antigo.
+    // O % só anda quando o Claude responde, então o /usage real é lido logo depois de atividade:
+    // a cada 60 s enquanto trabalha e 15 s depois de terminar. Parado, não lê nada.
+    // Roda mesmo com statusLine, porque no app do Claude ela pode repetir um % antigo.
     private func probeIfDue() {
-        guard !probing, Date().timeIntervalSince(lastProbe) > Self.probeEvery,
-              let last = lastActivity, Date().timeIntervalSince(last) < Self.probeEvery else { return }
+        guard !probing, let last = lastActivity, last > lastProbe else { return }
+        let finished = [.plating, .waiting, .resting].contains(state)
+        let every = finished ? 15 : (config.liveProbeSeconds ?? 60)
+        guard Date().timeIntervalSince(lastProbe) >= every else { return }
         probeNow()
     }
 
@@ -195,6 +216,13 @@ enum Fmt {
         return f.string(from: d)
     }
 
+    static func ago(_ d: Date, now: Date = Date()) -> String {
+        let s = Int(max(0, now.timeIntervalSince(d)))
+        if s < 60 { return "há \(s) s" }
+        if s < 3600 { return "há \(s / 60) min" }
+        return "às \(time(d))"
+    }
+
     static func weekdayTime(_ d: Date) -> String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "pt_BR")
@@ -311,7 +339,7 @@ struct Panel: View {
                     }
                     Spacer()
                     Text("média 7d: \(Fmt.tokens(s.avg7dTokens))/dia\n" + (s.calibrated
-                         ? "via \(m.config.calibration!.source ?? "/usage") às \(Fmt.time(m.config.calibration!.at))"
+                         ? "ao vivo via \(m.config.calibration!.source ?? "/usage") · \(Fmt.ago(m.config.calibration!.at))"
                          : "% estimado pelos logs"))
                         .font(.system(size: 9, design: .monospaced)).foregroundStyle(faded).multilineTextAlignment(.trailing)
                 }

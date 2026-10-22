@@ -14,6 +14,9 @@
 | ~6% de CPU com o painel aberto | O painel inteiro redesenhava a cada quadro. O quadro foi pra um `ObservableObject` separado que só o desenho do chef observa. |
 | No app do Claude, a statusLine dizia 1% enquanto o `/usage` dizia 9% | Ela pode repetir um `rate_limits` antigo com horário novo. Leitura menor que a anterior na mesma janela é ignorada, o `/usage` continua rodando a cada 30 min e o limite só é remedido entre leituras do `/usage`. |
 | A statusLine "renovava" a âncora a cada 5 s e o `/usage` nunca rodava | O `config.json` guarda datas sem frações de segundo, então a statusLine parecia sempre 0,4 s mais nova. Tolerância de 1 s na comparação. |
+| % atrasado até 30 min | O `/usage` passou a ser lido por evento: a cada 60 s enquanto o Claude trabalha e 15 s depois de terminar. |
+| Dois Claudinhos na barra (um do login, outro aberto pelo Finder) | Ao abrir, o app fecha se já tem outro rodando. |
+| Frestas entre os pixels do ícone | Antialias desligado e coordenadas inteiras ao desenhar os quadrados. |
 | Sessões abertas antes do `setup.py` não mudam de estado pelos hooks | É esperado: só sessões novas carregam os hooks. Reinicie. Enquanto isso o app usa os históricos. |
 
 ## Diagnóstico

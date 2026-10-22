@@ -4,7 +4,7 @@
 
 ### Tokens e atividade: históricos do Claude Code
 
-O app lê `~/.claude/projects/**/*.jsonl` a cada 5 s, só o que foi acrescentado desde a última leitura:
+O app lê `~/.claude/projects/**/*.jsonl` a cada 3 s, só o que foi acrescentado desde a última leitura:
 
 - cada resposta vira várias linhas (uma por bloco) repetindo o mesmo `usage`, então deduplica por `message.id` + `requestId`;
 - **tokens hoje** soma `input + output + cache_creation + cache_read`, igual ao `/usage`, por isso fica alto;
@@ -47,6 +47,7 @@ Por modelo: Opus 1, Sonnet 0,6, Haiku 0,2.
 
 - `hook.py` grava cada sessão separada, pelo `session_id`, em `~/.claudinho/state.json`, com trava de arquivo pra vários agentes escreverem juntos.
 - `Notification` com "permission" na mensagem vira **pedindo permissão**. As outras notificações viram **esperando você**.
+- O app observa a pasta `~/.claudinho` (`DispatchSource` de sistema de arquivos) e atualiza em ~0,3 s quando um hook grava, sem esperar o timer.
 - O app usa os hooks quando o evento deles é tão recente quanto o dos históricos. Se os hooks pararem, ele volta sozinho pros históricos.
 
 ### % da sessão e da semana: em camadas
@@ -54,9 +55,11 @@ Por modelo: Opus 1, Sonnet 0,6, Haiku 0,2.
 | Fonte | Quando | Exatidão |
 |---|---|---|
 | statusLine | toda vez que o Claude Code redesenha a statusLine | exato (`rate_limits.five_hour` e `seven_day`) |
-| `claude "/usage"` | a cada 30 min, se não há statusLine recente e houve uso do Claude Code | exato, arredondado pra inteiro |
+| `claude "/usage"` | a cada 60 s com o Claude trabalhando, 15 s depois de terminar; nunca parado | exato, arredondado pra inteiro |
 | manual | ⋯ → Calibrar à mão | o que você digitar |
 | históricos | o tempo todo, entre leituras | projeção |
+
+Uma leitura da statusLine menor que a anterior na mesma janela é descartada: o uso só sobe dentro da janela, então ela é velha.
 
 Cada leitura real vira a **âncora**: o % mostrado é `% da leitura + unidades desde a leitura ÷ limite`. Quando duas leituras seguidas caem na mesma janela e o % andou pelo menos 3 pontos (2 na semana), o limite é medido de novo e tirada a média com o valor antigo.
 
@@ -84,6 +87,8 @@ Na primeira vez o Claude Code pergunta se você confia na pasta `~/.claudinho`. 
 | Sprites | cache por estado e quadro, gerados uma vez |
 | Memória | ~37 MB (pico de ~90 MB durante uma leitura do `/usage`) |
 | CPU | ~0% parado, ~2,5% com o Claude trabalhando |
+| `/usage` | ~1 s por leitura, no máximo 1 por minuto, e só com atividade nova |
+| Instância | se já tem um Claudinho rodando, o segundo fecha sozinho |
 
 ## Rodando sozinho
 

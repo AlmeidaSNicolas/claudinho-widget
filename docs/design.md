@@ -20,6 +20,12 @@ O ícone é uma imagem *template*: o macOS pinta de preto ou branco conforme o t
 
 O ícone só redesenha quando algo muda (estado, quadro ou %). Parado, não gasta nada. A primeira versão era em SwiftUI (`MenuBarExtra`) e redesenhava a cada meio segundo, com uns 5% de CPU. Em AppKit, com 1 quadro por segundo e cache dos sprites, caiu pra uns 2,5% trabalhando e ~0% parado.
 
+## O ícone
+
+Gerado pelo mesmo sprite, com `./build.sh --icon`: o Claudinho mexendo a sopa no fundo de tinta, com uma faixa de papel embaixo de bancada. O corpo ganha a cor de argila do mascote do Claude Code (`#D97857`), a única cor fora da paleta. Em 16 e 32 px a cena não cabe, então só o Claudinho aparece, maior.
+
+<img src="img/icone.png" alt="Ícone do app" width="160">
+
 ## O Claudinho chef
 
 Grade de 27×16: o Claudinho ocupa as colunas 0–11 e o utensílio as colunas 13–26. 16 linhas cabem certinho na barra de menu com 1 pt por pixel.

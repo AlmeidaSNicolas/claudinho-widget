@@ -69,6 +69,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Aberto pelo Finder com o do login já rodando: fica só um.
+        let me = ProcessInfo.processInfo.processIdentifier
+        if NSRunningApplication.runningApplications(withBundleIdentifier: Bundle.main.bundleIdentifier ?? "")
+            .contains(where: { $0.processIdentifier != me }) {
+            NSApp.terminate(nil)
+            return
+        }
         controller = StatusBarController()
     }
 }

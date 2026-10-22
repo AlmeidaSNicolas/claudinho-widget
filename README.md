@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/img/icone.png" alt="Ícone do app: o Claudinho chef ao lado de uma panela" width="128"></p>
+
 <h1 align="center">Claudinho na barra de menu</h1>
 
 <p align="center">
@@ -58,14 +60,16 @@ flowchart LR
   L[~/.claude/projects<br/>históricos .jsonl] --> A
   H[hooks + statusLine<br/>opcionais] --> D[~/.claudinho<br/>state.json · statusline.json]
   D --> A[Claudinho.app<br/>barra de menu]
-  U[claude /usage<br/>a cada 30 min, se preciso] --> A
+  U[claude /usage<br/>depois de cada atividade] --> A
 ```
 
-Os dados vêm em camadas, do mais exato pro mais estimado:
+O % do limite só anda quando o Claude responde. Por isso o Claudinho é **ao vivo por evento**: ele lê o uso real logo depois de cada atividade, e parado não gasta nada.
 
-1. **statusLine** (opcional): o Claude Code manda o % exato da sessão e da semana, e o Claudinho usa isso como âncora.
-2. **`/usage` automático**: sem statusLine recente, o app roda `claude "/usage"` escondido por ~1 s a cada 30 min, só se você usou o Claude Code nesse tempo.
-3. **Históricos**: entre uma leitura e outra, o app soma os tokens dos `.jsonl` em `~/.claude/projects`, com peso por tipo de token, e projeta o %.
+1. **`/usage` real**: enquanto o Claude trabalha, o app roda `claude "/usage"` escondido (~1 s) a cada 60 s, e 15 s depois de cada resposta terminar. Sem atividade nova, não roda.
+2. **statusLine** (opcional): quando o Claude Code manda o % exato, ele entra na hora. Leituras que andam pra trás são ignoradas, porque no app do Claude ela pode repetir um valor antigo.
+3. **Históricos**: entre uma leitura e outra, o app soma os tokens dos `.jsonl` em `~/.claude/projects` a cada 3 s, com peso por tipo de token, e projeta o %.
+
+O painel mostra de quando é o número ("ao vivo via /usage · há 12 s").
 
 O estado (pensando, ferramenta, terminou) vem dos **hooks** quando estão ligados, e dos próprios históricos quando não estão. Detalhes em [docs/como-funciona.md](docs/como-funciona.md).
 
@@ -99,6 +103,7 @@ Fica em `~/.claudinho/config.json`, que o app cria e mantém sozinho:
 |---|---|---|
 | `sessionLimitUnits` | quantas unidades ponderadas valem 100% da sessão | `18000000` |
 | `weeklyLimitUnits` | idem pra semana | `67000000` |
+| `liveProbeSeconds` | com o Claude trabalhando, de quantos em quantos segundos ler o `/usage` | `60` |
 | `weekResetsAt` | um instante em que a semana renova (o ciclo se repete a cada 7 dias) | da primeira leitura |
 | `calibration` | a última leitura real (`at`, `sessionPct`, `sessionResetsAt`, `weekPct`, `source`) | — |
 
@@ -109,11 +114,12 @@ Os limites se ajustam sozinhos a cada leitura real em que o % andou. Normalmente
 | Ação | Como |
 |---|---|
 | Ver o painel | clicar no Claudinho na barra de menu |
-| Recalibrar agora | ⋯ → **Recalibrar agora** (lê o `/usage`) |
+| Ler o uso real agora | ⋯ → **Recalibrar agora** (lê o `/usage`) |
 | Calibrar à mão | ⋯ → **Calibrar à mão…** e copiar os números do `/usage` |
 | Sair | ⋯ → **Sair do Claudinho** (volta no próximo login) |
 | Atualizar depois de mexer no código | `./install.sh` |
 | Regenerar as imagens do README | `./build.sh --preview` |
+| Regenerar o ícone do app | `./build.sh --icon` |
 | Remover hooks e statusLine | `python3 setup.py remover` |
 | Desinstalar o app | `./install.sh --uninstall` |
 
@@ -133,7 +139,10 @@ claudinho-widget/
 ├── hooks/
 │   ├── hook.py            hook do Claude Code: estado de cada sessão
 │   └── statusline.py      statusLine: guarda o % exato e repassa a sua statusLine antiga
-├── tools/preview/         gera as imagens deste README em modo demo
+├── tools/
+│   ├── preview/           gera as imagens deste README em modo demo
+│   └── icon/              gera o ícone do app a partir do sprite
+├── Resources/AppIcon.icns o ícone do app
 ├── setup.py               liga/desliga hooks e statusLine no ~/.claude/settings.json (com backup)
 ├── build.sh               compila o .app (ou as imagens, com --preview)
 ├── install.sh             instala em ~/Applications e registra o LaunchAgent
@@ -143,7 +152,8 @@ claudinho-widget/
 ## Limitações
 
 - Só enxerga o Claude Code rodando neste Mac. O uso no claude.ai (navegador ou celular) entra no seu limite, mas não nos históricos. A calibração pelo `/usage` ou pela statusLine é que corrige isso.
-- Entre duas leituras reais o % é uma projeção. Ele usa pesos de custo por tipo de token e um limite medido, então pode errar uns pontos até a próxima leitura.
+- Entre duas leituras reais (no máximo 60 s com o Claude trabalhando) o % é uma projeção pelos históricos.
+- Cada leitura abre o Claude Code por ~1 s, com um pico de 200–400 MB que some logo depois. Dá pra espaçar com `liveProbeSeconds`.
 - No app do Claude a statusLine roda, mas pode repetir um % antigo. Por isso o `/usage` automático continua valendo, e leituras que andam pra trás são ignoradas.
 - O estado "pedindo permissão" só aparece com os hooks ligados.
 - O `/usage` automático depende do texto da tela do Claude Code. Se ele mudar de formato, a leitura falha em silêncio e o app segue só com a estimativa.

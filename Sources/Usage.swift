@@ -33,6 +33,8 @@ struct Config: Codable {
     // Limites em unidades ponderadas, medidos contra o /usage em 22/10/2026.
     var sessionLimitUnits: Double = 18_000_000
     var weeklyLimitUnits: Double = 67_000_000
+    // Com o Claude trabalhando, de quantos em quantos segundos ler o /usage real.
+    var liveProbeSeconds: Double? = 60
     // Qualquer instante em que a semana renova; o ciclo se repete a cada 7 dias.
     var weekResetsAt: Date = ISO8601DateFormatter().date(from: "2026-10-24T12:59:00Z")!
     var calibration: Calibration? = Calibration(
