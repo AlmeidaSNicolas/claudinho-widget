@@ -237,10 +237,14 @@ check(DeskPrefs.url.path.hasPrefix(dataDir.path) && DeskPrefs.load() == prefs, "
 let screen = CGRect(x: 0, y: 0, width: 1440, height: 875)
 check(prefs.origin(for: .medio, screens: [screen]) == CGPoint(x: 100, y: 200), "posição salva que cabe na tela é mantida")
 let fora = DeskPrefs(size: .grande, x: 2000, y: 100)
-check(fora.origin(for: .grande, screens: [screen]) == CGPoint(x: 1440 - 345 - 140, y: 875 - 345 - 20), "posição fora da tela volta pro canto de cima à direita")
+let pad = 2 * DeskPrefs.shadowPad
+check(DeskPrefs.windowSize(.medio) == CGSize(width: 345 + pad, height: 158 + pad), "janela = cartão + margem da sombra")
+check(fora.origin(for: .grande, screens: [screen]) == CGPoint(x: 1440 - (345 + pad) - 140, y: 875 - (345 + pad) - 20), "posição fora da tela volta pro canto de cima à direita")
 let segunda = CGRect(x: 1440, y: 0, width: 1920, height: 1080)
 check(fora.origin(for: .grande, screens: [screen, segunda]) == CGPoint(x: 2000, y: 100), "posição numa segunda tela é mantida")
-check(DeskPrefs(size: .pequeno, x: 1400, y: 10).origin(for: .pequeno, screens: [screen]).x == 1440 - 158 - 140, "cartão cortado na borda não conta como dentro")
+check(DeskPrefs(size: .pequeno, x: 1400, y: 10).origin(for: .pequeno, screens: [screen]).x == 1440 - (158 + pad) - 140, "cartão cortado na borda não conta como dentro")
+check(DeskController.level.rawValue == Int(CGWindowLevelForKey(.desktopIconWindow)) + 2, "mesma camada dos widgets da Apple, acima dos ícones")
+check(DeskController.level.rawValue < Int(CGWindowLevelForKey(.normalWindow)), "abaixo de qualquer janela")
 check(DeskPrefs().origin(for: .medio, screens: []) == .zero, "sem tela nenhuma não quebra")
 check(Monitor(demo: nil, snapshot: Snapshot()).deskSize == nil, "Monitor de teste começa com a mesa desligada")
 MainActor.assumeIsolated {
@@ -256,7 +260,7 @@ MainActor.assumeIsolated {
     }
     let m = Monitor(demo: .frying, snapshot: Snapshot())
     let desk = ImageRenderer(content: DeskView(monitor: m, ticker: m.ticker, size: .medio)).cgImage
-    check(desk.map { $0.width == 345 && $0.height == 158 } == true, "janela de mesa tem o tamanho do widget médio")
+    check(desk.map { CGFloat($0.width) == 345 + pad && CGFloat($0.height) == 158 + pad } == true, "janela de mesa = widget médio + margem da sombra")
     let host = DraggableHostingView(rootView: Text("x"))
     check(host.mouseDownCanMoveWindow && host.acceptsFirstMouse(for: nil), "cartão da mesa arrasta já no primeiro clique")
 }
