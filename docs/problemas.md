@@ -17,6 +17,8 @@
 | % atrasado até 30 min | O `/usage` passou a ser lido por evento: a cada 60 s enquanto o Claude trabalha e 15 s depois de terminar. |
 | Dois Claudinhos na barra (um do login, outro aberto pelo Finder) | Ao abrir, o app fecha se já tem outro rodando. |
 | Frestas entre os pixels do ícone | Antialias desligado e coordenadas inteiras ao desenhar os quadrados. |
+| Widget não aparece em "Editar Widgets" | Ele trava ao abrir (`EXC_BREAKPOINT` em `_EXRunningExtension._shared`, no ExtensionFoundation da Apple). Um widget mínimo, de 20 linhas, trava igual, então não é o código: o macOS não roda widget assinado ad hoc. Precisa de certificado de desenvolvedor (`CLAUDINHO_SIGN_IDENTITY`). Sem ele, o build deixa o widget de fora pra não gerar relatório de travamento toda vez que a galeria abre. |
+| Testar o widget sem abrir a galeria | `open -a "/System/Library/CoreServices/WidgetKit Simulator.app" ~/Applications/Claudinho.app/Contents/PlugIns/ClaudinhoWidget.appex` e olhar `~/Library/Logs/DiagnosticReports/ClaudinhoWidget-*`. |
 | Sessões abertas antes do `setup.py` não mudam de estado pelos hooks | É esperado: só sessões novas carregam os hooks. Reinicie. Enquanto isso o app usa os históricos. |
 
 ## Diagnóstico

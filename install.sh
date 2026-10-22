@@ -20,12 +20,13 @@ fi
 
 ./build.sh
 mkdir -p "$HOME/Applications" "$HOME/Library/LaunchAgents" "$HOME/.claudinho"
+[[ -d "$DEST/Contents/PlugIns/ClaudinhoWidget.appex" ]] && pluginkit -r "$DEST/Contents/PlugIns/ClaudinhoWidget.appex" 2>/dev/null || true
 rm -rf "$DEST"
 cp -R build/Claudinho.app "$DEST"
 # Registra o app e o widget no macOS (o widget aparece na galeria de widgets).
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 $LSREGISTER -f "$DEST" 2>/dev/null || true
-pluginkit -a "$DEST/Contents/PlugIns/ClaudinhoWidget.appex" 2>/dev/null || true
+[[ -d "$DEST/Contents/PlugIns/ClaudinhoWidget.appex" ]] && pluginkit -a "$DEST/Contents/PlugIns/ClaudinhoWidget.appex" 2>/dev/null || true
 
 cat > "$AGENT" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

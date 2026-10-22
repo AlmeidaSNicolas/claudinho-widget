@@ -3,6 +3,10 @@
 #   ./build.sh             -> build/Claudinho.app
 #   ./build.sh --preview   -> regenera as imagens do README em docs/img
 #   ./build.sh --icon      -> regenera Resources/AppIcon.icns a partir do sprite
+#
+# O widget nativo (WidgetKit) só entra com um certificado de desenvolvedor: o macOS derruba
+# widgets assinados ad hoc. Veja docs/problemas.md.
+#   CLAUDINHO_SIGN_IDENTITY="Apple Development: Fulano (ABCDE12345)" ./build.sh
 set -e
 cd "$(dirname "$0")"
 SWIFTC=(swiftc -O -swift-version 5 -target arm64-apple-macos14.0)
@@ -52,14 +56,17 @@ PLIST
 sed -i '' -e "s/VERSION/$VERSION/" -e "s/BUILD/$BUILD/" "$APP/Contents/Info.plist"
 $SWIFTC -parse-as-library Sources/*.swift -o "$APP/Contents/MacOS/Claudinho"
 
-# Widget: extensão embutida no app, com só as peças de desenho e o arquivo de dados.
-mkdir -p "$WIDGET/Contents/MacOS"
-sed -e "s/VERSION/$VERSION/" -e "s/BUILD/$BUILD/" Widget/Info.plist > "$WIDGET/Contents/Info.plist"
-$SWIFTC -parse-as-library -application-extension \
-  Sources/Sprites.swift Sources/Style.swift Sources/WidgetData.swift Widget/ClaudinhoWidget.swift \
-  -o "$WIDGET/Contents/MacOS/ClaudinhoWidget"
-
-# Assinatura ad hoc: primeiro o widget (com o sandbox), depois o app por fora.
-codesign --force --sign - --entitlements Widget/Widget.entitlements "$WIDGET" >/dev/null
-codesign --force --sign - "$APP" >/dev/null
+SIGN="${CLAUDINHO_SIGN_IDENTITY:--}"
+if [[ "$SIGN" != "-" ]]; then
+  # Widget: extensão embutida no app, com só as peças de desenho e o arquivo de dados.
+  mkdir -p "$WIDGET/Contents/MacOS"
+  sed -e "s/VERSION/$VERSION/" -e "s/BUILD/$BUILD/" Widget/Info.plist > "$WIDGET/Contents/Info.plist"
+  $SWIFTC -parse-as-library -application-extension \
+    Sources/Sprites.swift Sources/Style.swift Sources/WidgetData.swift Widget/ClaudinhoWidget.swift \
+    -o "$WIDGET/Contents/MacOS/ClaudinhoWidget"
+  # primeiro o widget (com o sandbox), depois o app por fora
+  codesign --force --sign "$SIGN" --entitlements Widget/Widget.entitlements "$WIDGET" >/dev/null 2>&1
+fi
+codesign --force --sign "$SIGN" "$APP" >/dev/null 2>&1
+[[ "$SIGN" == "-" ]] && echo "(widget nativo fora: precisa de CLAUDINHO_SIGN_IDENTITY)"
 echo "ok: $APP"

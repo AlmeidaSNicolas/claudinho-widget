@@ -19,10 +19,18 @@ echo "\n== build do app"
 plutil -lint -s build/Claudinho.app/Contents/Info.plist
 codesign -v build/Claudinho.app
 W=build/Claudinho.app/Contents/PlugIns/ClaudinhoWidget.appex
-plutil -lint -s "$W/Contents/Info.plist"
-[[ $(plutil -extract NSExtension.NSExtensionPointIdentifier raw "$W/Contents/Info.plist") == com.apple.widgetkit-extension ]]
-[[ $(plutil -extract CFBundleIdentifier raw "$W/Contents/Info.plist") == local.claudinho.monitor.widget ]]
-codesign -d --entitlements - "$W" 2>/dev/null | grep -q app-sandbox
-codesign -d --entitlements - "$W" 2>/dev/null | grep -q /.claudinho/
-codesign -v "$W"
-echo "app ok (com o widget embutido, em sandbox, lendo só ~/.claudinho)"
+if [[ -n "$CLAUDINHO_SIGN_IDENTITY" ]]; then
+  plutil -lint -s "$W/Contents/Info.plist"
+  [[ $(plutil -extract NSExtension.NSExtensionPointIdentifier raw "$W/Contents/Info.plist") == com.apple.widgetkit-extension ]]
+  [[ $(plutil -extract CFBundleIdentifier raw "$W/Contents/Info.plist") == local.claudinho.monitor.widget ]]
+  codesign -d --entitlements - "$W" 2>/dev/null | grep -q app-sandbox
+  codesign -d --entitlements - "$W" 2>/dev/null | grep -q /.claudinho/
+  codesign -v "$W"
+  echo "app ok (com o widget nativo embutido, em sandbox, lendo só ~/.claudinho)"
+else
+  [[ ! -d "$W" ]]   # sem certificado, o widget que trava não pode ir junto
+  # o widget ainda tem que compilar como extensão, pra não apodrecer até ter certificado
+  swiftc -swift-version 5 -target arm64-apple-macos14.0 -parse-as-library -application-extension \
+    Sources/Sprites.swift Sources/Style.swift Sources/WidgetData.swift Widget/ClaudinhoWidget.swift -o "$TMP/bin/widget"
+  echo "app ok (sem o widget nativo: falta certificado; o código dele compila e é testado)"
+fi

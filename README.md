@@ -40,7 +40,17 @@ Também dá pra deixar o Claudinho na mesa ou na Central de Notificações, junt
 
 <p align="center"><img src="docs/img/widget/grande.png" alt="Widget grande" width="380"></p>
 
-Pra adicionar: clique com o botão direito na mesa → **Editar Widgets** → procure **Claudinho**. O widget vem junto com o app, não precisa instalar nada a mais.
+> [!IMPORTANT]
+> **O widget nativo precisa de um certificado de desenvolvedor.** O macOS derruba qualquer widget assinado ad hoc, até um de 20 linhas (veja [problemas.md](docs/problemas.md)). Com o Xcode instalado e um Apple ID (grátis) em Xcode → Settings → Accounts, você ganha um certificado "Apple Development". Aí é só compilar com ele:
+>
+> ```sh
+> security find-identity -v -p codesigning          # copie o nome do certificado
+> CLAUDINHO_SIGN_IDENTITY="Apple Development: Seu Nome (ABCDE12345)" ./install.sh
+> ```
+>
+> Sem certificado, o `./install.sh` instala só o app da barra de menu, sem o widget.
+
+Pra adicionar: clique com o botão direito na mesa → **Editar Widgets** → procure **Claudinho**.
 
 O widget mostra o mesmo número do painel, mas não anima: no macOS widget não roda timer, e o sistema limita quantas vezes por dia ele pode se redesenhar. Por isso o app só pede um redesenho quando algo muda de verdade (troca de estado na hora, % no máximo a cada 30 s). A contagem regressiva "renova em…" anda sozinha. Se o app ficar fechado por mais de 15 min, o widget passa pra "Descansando".
 
