@@ -25,8 +25,10 @@ func writePNG(_ cg: CGImage, _ url: URL) {
     try! rep.representation(using: .png, properties: [:])!.write(to: url)
 }
 
-@MainActor func panel(_ state: ChefState, tool: String?, detail: String?, name: String) {
-    let m = Monitor(demo: state, snapshot: demoSnapshot(tool: tool, detail: detail))
+@MainActor func panel(_ state: ChefState, tool: String?, detail: String?, name: String, pct: Double? = nil) {
+    var snap = demoSnapshot(tool: tool, detail: detail)
+    if let pct { snap.sessionPct = pct }
+    let m = Monitor(demo: state, snapshot: snap)
     m.config.calibration = Calibration(at: Date().addingTimeInterval(-12), sessionPct: 0.13, sessionResetsAt: Date(), weekPct: 0.31, source: "statusLine")
     let r = ImageRenderer(content: Panel(m: m).environment(\.colorScheme, .light))
     r.scale = 2
@@ -77,9 +79,10 @@ MainActor.assumeIsolated {
     panel(.waiting, tool: nil, detail: nil, name: "esperando")
     panel(.asking, tool: "Bash", detail: "rm -rf build/", name: "pedindo")
     panel(.resting, tool: nil, detail: nil, name: "descansando")
+    panel(.outOfGas, tool: nil, detail: nil, name: "sem-gas", pct: 1)
 }
 for (state, name) in [(ChefState.thinking, "sopa"), (.chopping, "cebola"), (.frying, "frigideira"), (.seasoning, "tempero"),
-                      (.plating, "prato"), (.waiting, "esperando"), (.resting, "descansando")] {
+                      (.plating, "prato"), (.waiting, "esperando"), (.resting, "descansando"), (.outOfGas, "sem-gas")] {
     gif(state, name, delay: state == .resting ? 1.6 : 0.8)
 }
 menuBar()

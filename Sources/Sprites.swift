@@ -4,7 +4,7 @@ import AppKit
 // personagem em x=0 (12 colunas), utensílio em x=13 (14 colunas).
 
 enum ChefState: String, Codable {
-    case thinking, chopping, frying, seasoning, plating, waiting, asking, resting
+    case thinking, chopping, frying, seasoning, plating, waiting, asking, resting, outOfGas
 
     var title: String {
         switch self {
@@ -16,7 +16,14 @@ enum ChefState: String, Codable {
         case .waiting: "Esperando você"
         case .asking: "Pedindo permissão!"
         case .resting: "Descansando"
+        case .outOfGas: "Acabou o gás!"
         }
+    }
+
+    // Limite da sessão ou da semana no fim: o Claude não responde mais até renovar, então esse
+    // estado vem antes de qualquer outro. 99,5% porque o /usage arredonda pra inteiro.
+    static func isOutOfGas(sessionPct: Double, weekPct: Double) -> Bool {
+        sessionPct >= 0.995 || weekPct >= 0.995
     }
 
     var animated: Bool { self != .waiting && self != .resting }
@@ -31,6 +38,7 @@ enum ChefState: String, Codable {
         case .waiting: "sua vez"
         case .asking: "aprove no Claude Code"
         case .resting: "sem atividade"
+        case .outOfGas: "limite atingido"
         }
     }
 }
@@ -116,6 +124,9 @@ enum Sprites {
     private static let zSmall = ["###", ".#.", "###"]
     private static let mug = ["#####..", "#####.#", "#####.#", "######.", ".####.."]
 
+    // Acabou o gás: panela fria em cima da boca apagada, e uma faísca que não pega.
+    private static let burner = ["#.#.#.#.#.#."]
+
     private static func propLayers(_ state: ChefState, frame: Int) -> [Layer] {
         let a = frame % 2 == 0
         switch state {
@@ -135,6 +146,8 @@ enum Sprites {
             return [(bang, 1, a ? 0 : 1), (bell, a ? 3 : 4, 12)]
         case .resting:
             return [(zBig, 6, a ? 1 : 2), (zSmall, 2, a ? 5 : 4), (mug, 3, 11)]
+        case .outOfGas:
+            return [(pot, 1, 8), (burner, 1, 15)] + (a ? [] : [(spark, 5, 4)])
         }
     }
 
@@ -149,7 +162,8 @@ enum Sprites {
             }
         }
         let busy = [.thinking, .chopping, .frying, .seasoning].contains(state)
-        let shut = state == .resting || (state != .waiting && frame % 6 == 5) // pisca de vez em quando
+        let shut = state == .resting || state == .outOfGas  // dormindo ou desanimado
+            || (state != .waiting && frame % 6 == 5)       // e pisca de vez em quando
         stamp(chef(eyesShut: shut, armsRaised: busy && frame % 2 == 1), 0, 0)
         for (rows, x, y) in propLayers(state, frame: frame) { stamp(rows, 13 + x, y) }
         return g

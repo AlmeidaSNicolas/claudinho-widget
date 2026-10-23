@@ -76,7 +76,9 @@ struct Dial: View {
                         .rotationEffect(.degrees(Double(i) / Double(segments) * 360))
                 }
                 VStack(spacing: 0) {
-                    Text("\(Int((pct * 100).rounded()))%").font(.system(size: 20 * k, weight: .bold, design: .rounded)).foregroundStyle(ink)
+                    let n = Int((pct * 100).rounded())
+                    // "100%" tem três dígitos e encostava no anel
+                    Text("\(n)%").font(.system(size: (n >= 100 ? 16 : 20) * k, weight: .bold, design: .rounded)).foregroundStyle(ink)
                     Caption(text: label)
                 }
             }

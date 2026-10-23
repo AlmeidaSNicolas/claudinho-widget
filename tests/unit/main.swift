@@ -19,7 +19,7 @@ iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
 // MARK: sprites
 section("sprites")
-let all: [ChefState] = [.thinking, .chopping, .frying, .seasoning, .plating, .waiting, .asking, .resting]
+let all: [ChefState] = [.thinking, .chopping, .frying, .seasoning, .plating, .waiting, .asking, .resting, .outOfGas]
 for s in all {
     for f in 0..<2 {
         let g = Sprites.grid(s, frame: f)
@@ -158,6 +158,29 @@ let asking = HookSession(status: "asking", toolRunning: false, toolName: nil, to
 check(monitorState(last: ev(.assistantTool, 30, tool: "Bash"), hook: asking) == .asking, "hook recente manda: pedindo permissão")
 let oldHook = HookSession(status: "asking", toolRunning: false, toolName: nil, toolDesc: nil, project: "p", lastEvent: Date().addingTimeInterval(-600))
 check(monitorState(last: ev(.user, 5), hook: oldHook) == .thinking, "hook mais velho que os logs é ignorado")
+
+// MARK: acabou o gás
+section("acabou o gás")
+check(ChefState.isOutOfGas(sessionPct: 1, weekPct: 0.3) && ChefState.isOutOfGas(sessionPct: 0.2, weekPct: 1), "sessão ou semana em 100% = sem gás")
+check(ChefState.isOutOfGas(sessionPct: 0.995, weekPct: 0), "99,5% já conta (o /usage arredonda)")
+check(!ChefState.isOutOfGas(sessionPct: 0.99, weekPct: 0.99), "99% ainda tem gás")
+func stateWith(_ s: Double, _ w: Double, last: LastEvent?, hook: HookSession? = nil) -> ChefState {
+    var snap = Snapshot(); snap.sessionPct = s; snap.weekPct = w; snap.last = last
+    return Monitor(demo: nil, snapshot: snap, hook: hook).state
+}
+check(stateWith(1, 0.4, last: ev(.assistantTool, 5, tool: "Bash")) == .outOfGas, "sem gás passa na frente da frigideira")
+check(stateWith(0.4, 1, last: nil) == .outOfGas, "limite da semana também apaga o fogão")
+check(stateWith(1, 0.4, last: ev(.user, 5), hook: asking) == .outOfGas, "e passa na frente até de pedir permissão")
+check(stateWith(0.98, 0.4, last: ev(.assistantTool, 5, tool: "Bash")) == .frying, "com gás, segue cozinhando")
+check(ChefState.outOfGas.animated && !ChefState.outOfGas.title.isEmpty, "sem gás anima (a faísca que não pega)")
+var semGas = WidgetSnapshot.placeholder
+semGas.state = .outOfGas; semGas.sessionPct = 1; semGas.sessionResetsAt = Date().addingTimeInterval(600)
+check(semGas.current().state == .outOfGas, "widget mostra sem gás enquanto não renova")
+semGas.sessionResetsAt = Date().addingTimeInterval(-5)
+check(semGas.current().state == .resting && semGas.current().sessionPct == 0, "renovou: o widget sai do sem gás sozinho")
+let g0 = Sprites.grid(.outOfGas, frame: 0), g1 = Sprites.grid(.outOfGas, frame: 1)
+check(g0[8].contains(true) && g0[15].contains(true), "panela e boca do fogão aparecem")
+check(!g0[4][18...20].contains(true) && g1[4][18...20].contains(true), "a faísca só aparece no quadro 2")
 
 // MARK: calibração
 section("calibração")
