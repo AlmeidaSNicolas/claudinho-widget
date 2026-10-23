@@ -58,6 +58,7 @@ struct WidgetSnapshot: Codable, Equatable {
         var s = self
         if now.timeIntervalSince(updatedAt) > 15 * 60 { s.state = .resting; s.toolName = nil; s.toolDetail = nil }
         if let r = sessionResetsAt, r < now { s.sessionPct = 0; s.sessionResetsAt = nil }
+        if s.state == .outOfGas && !ChefState.isOutOfGas(sessionPct: s.sessionPct, weekPct: s.weekPct) { s.state = .resting }
         return s
     }
 }

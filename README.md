@@ -66,19 +66,31 @@ O **widget nativo** vem junto com o app, sem precisar de Xcode nem de conta de d
 | **Esperando você** | **Descansando** |
 | ![Esperando](docs/img/estados/esperando.png) | ![Descansando](docs/img/estados/descansando.png) |
 | Terminou e é a sua vez. | Nada aconteceu nos últimos 15 minutos. |
+| **Acabou o gás** | |
+| ![Acabou o gás](docs/img/estados/sem-gas.png) | |
+| O limite da sessão ou da semana chegou a 100%. Veja abaixo. | |
 
 Com várias sessões abertas (app do Claude, terminal do IntelliJ, agentes em paralelo), o painel mostra a mais urgente: pedindo permissão > trabalhando > terminou > esperando.
 
 ## O Claudinho chef
 
-Oito animações de 2 quadros cada, numa grade de 27×16 pixels: 12 colunas pro Claudinho e 14 pro utensílio. Cada animação conta o que o Claude está fazendo de verdade.
+Nove animações de 2 quadros cada, numa grade de 27×16 pixels: 12 colunas pro Claudinho e 14 pro utensílio. Cada animação conta o que o Claude está fazendo de verdade.
 
 | | | | |
 |:-:|:-:|:-:|:-:|
 | ![Sopa](docs/img/sprites/sopa.gif) | ![Cebola](docs/img/sprites/cebola.gif) | ![Frigideira](docs/img/sprites/frigideira.gif) | ![Tempero](docs/img/sprites/tempero.gif) |
 | Mexendo a sopa<br><sub>pensando</sub> | Cortando cebola<br><sub>`Edit` / `Write`</sub> | Frigideira<br><sub>`Bash`</sub> | Temperando<br><sub>`Read`, `Grep`, web…</sub> |
-| ![Prato](docs/img/sprites/prato.gif) | ![Esperando](docs/img/sprites/esperando.gif) | ![Descansando](docs/img/sprites/descansando.gif) | |
-| Prato pronto<br><sub>acabou de terminar</sub> | Sino com "?"<br><sub>sua vez (com "!" quando pede permissão)</sub> | Cochilando com café<br><sub>parado</sub> | |
+| ![Prato](docs/img/sprites/prato.gif) | ![Esperando](docs/img/sprites/esperando.gif) | ![Descansando](docs/img/sprites/descansando.gif) | ![Acabou o gás](docs/img/sprites/sem-gas.gif) |
+| Prato pronto<br><sub>acabou de terminar</sub> | Sino com "?"<br><sub>sua vez (com "!" quando pede permissão)</sub> | Cochilando com café<br><sub>parado</sub> | Acabou o gás<br><sub>limite em 100%</sub> |
+
+### Acabou o gás
+
+Quando o limite da **sessão (5h)** ou da **semana** chega a 100%, o Claude Code para de responder até renovar. O Claudinho mostra isso com o fogão apagado: a panela fria em cima da boca, os olhos baixos e uma faísca que tenta acender e não pega.
+
+- **Quando aparece:** sessão ou semana em 99,5% ou mais (o `/usage` arredonda pra inteiro). Vale pela leitura real e pela projeção entre leituras.
+- **Prioridade:** passa na frente de todos os outros estados, até de "pedindo permissão", porque sem limite nada mais anda.
+- **Onde:** no ícone da barra de menu, no painel, no Claudinho de mesa e no widget nativo. O anel cheio mostra qual dos dois limites acabou, e a hora de renovar aparece embaixo dele.
+- **Quando sai:** sozinho, assim que a janela renova. O widget nativo também sai do estado sem esperar o app: se a hora de renovar já passou, ele zera a sessão e volta pra "Descansando".
 
 No Kindle a animação precisou virar blocos sorteados, porque ele só olha a cada 30 s. Aqui a barra de menu atualiza na hora, então dá pra ter uma animação por tipo de ferramenta. O processo está em [docs/design.md](docs/design.md).
 

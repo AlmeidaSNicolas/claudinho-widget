@@ -201,6 +201,7 @@ final class Monitor: ObservableObject {
     // Hooks quando existem (sabem de permissão e de várias sessões); senão, os logs.
     var state: ChefState {
         if let demoState { return demoState }
+        if ChefState.isOutOfGas(sessionPct: sessionPct, weekPct: weekPct) { return .outOfGas }
         let now = Date()
         if let h = hook, h.lastEvent >= (snapshot.last?.ts ?? .distantPast).addingTimeInterval(-5) {
             let age = now.timeIntervalSince(h.lastEvent)

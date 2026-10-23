@@ -46,6 +46,7 @@ Grade de 27×16: o Claudinho ocupa as colunas 0–11 e o utensílio as colunas 1
 | Sino com "?" | esperando você | balão balança |
 | Sino com "!" | pedindo permissão | balão e sino balançam |
 | Cochilando com café | parado há mais de 15 min | Zzz sobe (fica parado na barra) |
+| Acabou o gás | sessão ou semana em 100% (passa na frente de todos) | faísca tenta acender a boca e não pega |
 
 Enquanto trabalha, o Claudinho levanta os braços no quadro 2, e de vez em quando pisca.
 
