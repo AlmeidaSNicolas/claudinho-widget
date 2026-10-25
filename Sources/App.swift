@@ -137,16 +137,16 @@ final class Monitor: ObservableObject {
                 DispatchQueue.main.async { self.ignoredStatusLineAt = at }
                 return
             }
-            // Limite só é remedido entre leituras do /usage ou manuais: a statusLine pode estar velha.
-            if let old = cfg.calibration, at > old.at, old.source != "statusLine", source != "statusLine" {
-                let used = self.reader.units(from: old.at, to: at)
-                let ds = sessionPct - old.sessionPct
-                if abs(old.sessionResetsAt.timeIntervalSince(sessionResetsAt)) < 120, ds >= 0.03, used > 0 {
-                    cfg.sessionLimitUnits = (cfg.sessionLimitUnits + used / ds) / 2
+            // O limite só é medido com leituras do /usage: a statusLine pode repetir um % velho e a
+            // manual é palpite. Precisa de folga (15 min e 5 pontos na sessão) pra não medir ruído.
+            if source == "/usage" {
+                cfg.record(sessionPct: sessionPct, sessionEnd: sessionResetsAt, weekPct: weekPct, at: at)
+                let units = { (a: Date, b: Date) in self.reader.units(from: a, to: b) }
+                if let est = Config.estimateLimit(cfg.sessionReadings ?? [], minSpan: 15 * 60, minDelta: 0.05, units: units) {
+                    cfg.sessionLimitUnits = Config.refine(cfg.sessionLimitUnits, toward: est)
                 }
-                let dw = weekPct - old.weekPct
-                if cfg.weekWindow(at: old.at).end == cfg.weekWindow(at: at).end, dw >= 0.02, used > 0 {
-                    cfg.weeklyLimitUnits = (cfg.weeklyLimitUnits + used / dw) / 2
+                if let est = Config.estimateLimit(cfg.weekReadings ?? [], minSpan: 3600, minDelta: 0.03, units: units) {
+                    cfg.weeklyLimitUnits = Config.refine(cfg.weeklyLimitUnits, toward: est)
                 }
             }
             if let weekResetsAt { cfg.weekResetsAt = weekResetsAt }

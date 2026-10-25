@@ -155,6 +155,7 @@ Fica em `~/.claudinho/config.json`, que o app cria e mantém sozinho:
 | `weeklyLimitUnits` | idem pra semana | `67000000` |
 | `~/.claudinho/mesa.json` | tamanho e posição do Claudinho de mesa (o app grava sozinho) | desligado |
 | `liveProbeSeconds` | com o Claude trabalhando, de quantos em quantos segundos ler o `/usage` | `60` |
+| `sessionReadings`, `weekReadings` | leituras do `/usage` da janela atual, usadas pra medir os limites (o app grava sozinho) | — |
 | `weekResetsAt` | um instante em que a semana renova (o ciclo se repete a cada 7 dias) | da primeira leitura |
 | `calibration` | a última leitura real (`at`, `sessionPct`, `sessionResetsAt`, `weekPct`, `source`) | — |
 
