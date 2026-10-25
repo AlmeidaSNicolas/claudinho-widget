@@ -61,7 +61,7 @@ Por modelo: Opus 1, Sonnet 0,6, Haiku 0,2.
 
 Uma leitura da statusLine menor que a anterior na mesma janela é descartada: o uso só sobe dentro da janela, então ela é velha.
 
-Cada leitura real vira a **âncora**: o % mostrado é `% da leitura + unidades desde a leitura ÷ limite`. Quando duas leituras seguidas caem na mesma janela e o % andou pelo menos 3 pontos (2 na semana), o limite é medido de novo e tirada a média com o valor antigo.
+Cada leitura real vira a **âncora**: o % mostrado é `% da leitura + unidades desde a leitura ÷ limite`. O limite é medido com as leituras do `/usage` guardadas na janela: entre a mais antiga (ignorando o 0% do começo) e a mais nova, desde que tenham pelo menos 15 min e 5 pontos de diferença (1 h e 3 pontos na semana). O valor anda meio caminho até a medida nova, sem mais que dobrar ou cortar pela metade de uma vez. A statusLine e a calibração manual não entram nessa conta.
 
 Se a janela da âncora já passou, a sessão é estimada só pelos históricos: começa na hora cheia da primeira mensagem e dura 5 h. A semana sempre segue o ciclo de `weekResetsAt`.
 

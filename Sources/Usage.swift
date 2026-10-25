@@ -29,12 +29,23 @@ struct Calibration: Codable {
     var source: String? = "/usage"   // statusLine, /usage ou manual
 }
 
+// Uma leitura do /usage guardada pra medir o limite: o % daquele momento.
+struct Reading: Codable, Equatable {
+    var at: Date
+    var pct: Double
+}
+
 struct Config: Codable {
     // Limites em unidades ponderadas, medidos contra o /usage em 22/10/2026.
     var sessionLimitUnits: Double = 18_000_000
     var weeklyLimitUnits: Double = 67_000_000
     // Com o Claude trabalhando, de quantos em quantos segundos ler o /usage real.
     var liveProbeSeconds: Double? = 60
+    // Leituras do /usage na janela atual (sessão e semana), pra medir o limite com folga.
+    var sessionReadings: [Reading]?
+    var sessionReadingsEnd: Date?
+    var weekReadings: [Reading]?
+    var weekReadingsEnd: Date?
     // Qualquer instante em que a semana renova; o ciclo se repete a cada 7 dias.
     var weekResetsAt: Date = ISO8601DateFormatter().date(from: "2026-10-24T12:59:00Z")!
     var calibration: Calibration? = Calibration(
@@ -63,6 +74,33 @@ struct Config: Codable {
         enc.outputFormatting = [.prettyPrinted, .sortedKeys]
         enc.dateEncodingStrategy = .iso8601
         try? enc.encode(self).write(to: Self.url)
+    }
+
+    // Guarda a leitura na lista da janela dela; janela nova começa a lista do zero.
+    mutating func record(sessionPct: Double, sessionEnd: Date, weekPct: Double, at: Date) {
+        func add(_ list: inout [Reading]?, _ end: inout Date?, _ newEnd: Date, _ pct: Double) {
+            if end.map({ abs($0.timeIntervalSince(newEnd)) >= 120 }) ?? true { list = []; end = newEnd }
+            list = Array(((list ?? []) + [Reading(at: at, pct: pct)]).suffix(200))
+        }
+        add(&sessionReadings, &sessionReadingsEnd, sessionEnd, sessionPct)
+        add(&weekReadings, &weekReadingsEnd, weekWindow(at: at).end, weekPct)
+    }
+
+    // Quanto vale 100%, medido entre a leitura mais antiga e a mais nova da janela. Leituras
+    // vizinhas não servem: o /usage arredonda pra inteiro, no começo da janela ele diz 0% e
+    // pula, e uso fora deste Mac sobe o % sem aparecer nos históricos. Tudo isso, comparando
+    // vizinhas, dava limites cada vez menores e o % projetado disparava.
+    static func estimateLimit(_ readings: [Reading], minSpan: TimeInterval, minDelta: Double,
+                              units: (Date, Date) -> Double) -> Double? {
+        guard let first = readings.first(where: { $0.pct >= 0.02 }), let last = readings.last,
+              last.at.timeIntervalSince(first.at) >= minSpan, last.pct - first.pct >= minDelta else { return nil }
+        let used = units(first.at, last.at)
+        return used > 0 ? used / (last.pct - first.pct) : nil
+    }
+
+    // Puxa o limite metade do caminho até a medida nova, sem mais que dobrar ou cortar pela metade.
+    static func refine(_ old: Double, toward est: Double) -> Double {
+        (old + min(max(est, old / 2), old * 2)) / 2
     }
 
     func weekWindow(at now: Date) -> DateInterval {

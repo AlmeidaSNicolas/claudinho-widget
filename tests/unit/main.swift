@@ -202,6 +202,45 @@ check(near(Config.load().calibration!.sessionPct, 0.02), "manual pode corrigir p
 calibrateAndWait(m, 0.01, 0.01, reset: Date().addingTimeInterval(5 * 3600), source: "/usage")
 check(near(Config.load().calibration!.sessionPct, 0.01), "janela nova começa do zero")
 
+// MARK: medir o limite
+section("medir o limite")
+let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+func r(_ min: Double, _ pct: Double) -> Reading { Reading(at: t0.addingTimeInterval(min * 60), pct: pct) }
+let porMinuto = { (a: Date, b: Date) in b.timeIntervalSince(a) / 60 * 100_000 }   // 100 mil unidades por minuto
+check(Config.estimateLimit([r(0, 0.10), r(1, 0.13)], minSpan: 900, minDelta: 0.05, units: porMinuto) == nil,
+      "leituras vizinhas (1 min, 3 pontos de arredondamento) não medem nada")
+check(Config.estimateLimit([r(0, 0.10), r(20, 0.12)], minSpan: 900, minDelta: 0.05, units: porMinuto) == nil,
+      "20 min mas só 2 pontos: ainda é ruído")
+let medido = Config.estimateLimit([r(0, 0.10), r(5, 0.11), r(30, 0.20)], minSpan: 900, minDelta: 0.05, units: porMinuto)
+check(medido.map { near($0, 3_000_000 / 0.10, 1) } == true, "30 min e 10 pontos: limite = unidades / Δ% (veio \(medido ?? -1))")
+let comZero = Config.estimateLimit([r(0, 0), r(1, 0.12), r(31, 0.22)], minSpan: 900, minDelta: 0.05, units: porMinuto)
+check(comZero.map { near($0, 3_000_000 / 0.10, 1) } == true, "o 0% do começo da janela é ignorado (o pulo 0→12% não conta)")
+check(Config.estimateLimit([r(0, 0.10), r(30, 0.20)], minSpan: 900, minDelta: 0.05, units: { _, _ in 0 }) == nil, "sem uso local não mede")
+check(near(Config.refine(18e6, toward: 36e6), 27e6) && near(Config.refine(18e6, toward: 1e6), 13.5e6) && near(Config.refine(18e6, toward: 100e6), 27e6),
+      "ajuste vai meio caminho e no máximo dobra ou corta pela metade")
+var rc = Config()
+let fimA = t0.addingTimeInterval(3 * 3600), fimB = t0.addingTimeInterval(8 * 3600)
+rc.record(sessionPct: 0.1, sessionEnd: fimA, weekPct: 0.3, at: t0)
+rc.record(sessionPct: 0.2, sessionEnd: fimA.addingTimeInterval(60), weekPct: 0.31, at: t0.addingTimeInterval(600))
+check(rc.sessionReadings?.count == 2, "mesma janela (renovação ±1 min): as leituras se acumulam")
+rc.record(sessionPct: 0.01, sessionEnd: fimB, weekPct: 0.32, at: t0.addingTimeInterval(7200))
+check(rc.sessionReadings == [Reading(at: t0.addingTimeInterval(7200), pct: 0.01)], "janela nova recomeça a lista")
+check(rc.weekReadings?.count == 3, "a semana tem a lista dela")
+for i in 0..<250 { rc.record(sessionPct: 0.1, sessionEnd: fimB, weekPct: 0.3, at: t0.addingTimeInterval(Double(i))) }
+check(rc.sessionReadings?.count == 200, "lista guarda no máximo 200 leituras")
+
+// o cenário que derrubou o limite pra 4,6 mi: só leituras vizinhas, com 0% no começo
+let mm = Monitor(demo: nil, snapshot: Snapshot())
+let fim = Date().addingTimeInterval(4 * 3600)
+var lc = Config(); lc.calibration = nil; lc.sessionLimitUnits = 18e6; lc.save()
+calibrateAndWait(mm, 0.00, 0.30, reset: fim, source: "/usage", at: Date().addingTimeInterval(-120))
+calibrateAndWait(mm, 0.12, 0.31, reset: fim, source: "/usage", at: Date().addingTimeInterval(-60))
+calibrateAndWait(mm, 0.13, 0.31, reset: fim, source: "/usage", at: Date())
+check(near(Config.load().sessionLimitUnits, 18e6), "pulo do começo + leituras vizinhas não mexem no limite (veio \(Config.load().sessionLimitUnits))")
+check(Config.load().sessionReadings?.count == 3, "mas as leituras ficam guardadas pra medir depois")
+calibrateAndWait(mm, 0.30, 0.32, reset: fim, source: "statusLine", at: Date())
+check(Config.load().sessionReadings?.count == 3, "statusLine não entra na medida")
+
 // MARK: painel
 section("painel")
 MainActor.assumeIsolated {
